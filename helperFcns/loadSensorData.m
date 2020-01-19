@@ -1,5 +1,5 @@
 function [dataTables]=loadSensorData(dataDir, taskList)
-%loadSensorData - create sensor data tables from patient .csv files or load pre-existing .mat files
+%loadSensorData -load data tables and UHDRS score labels from pre-existing .mat files
 %
 % Syntax:  [dataTables] = loadSensorData(dataDir,outputDir, taskList, sensorList)
 %

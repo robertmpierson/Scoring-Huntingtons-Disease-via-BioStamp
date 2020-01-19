@@ -1,8 +1,5 @@
 function [trn_out, tst_out, xtra] = getModelResults(chosenModel, model_name, model_num, classifier_type, ...
      selected_fts, selected_test_fts, reg_labels, reg_labels_test, flabels, m_rng, dataDir, isbinary)
-%
-% [trn_acc, tst_acc, AUC] = getModelResults(chosenModel, model_name, model_num, classifier_type)
-%
 
 % Get training and testing accuracies
 yfit_trn= min(max(chosenModel.predictFcn(array2table(selected_fts, 'VariableNames', flabels')),...

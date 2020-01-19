@@ -1,4 +1,20 @@
 function [ampFeats] = getAmplitudeFeats(data, minpkdist)
+%getAmplitudeFeats - quantify statistics of peak to peak features in a
+%signal
+%
+% Syntax: [ampFeats] = getAmplitudeFeats(data, minpkdist)
+%
+% Inputs:
+%    data - TxN matrix with timeseries data in columns
+%    minpkdist - minimum spacing between detected peaks, input to findpeaks
+%    function
+%
+% Outputs:
+%    ampFeats - a 6xN feature array with mean, max, min, std peak-to-peak
+%    amplitudes, and mean & std of the absolute regularity for each time
+%    series along the columns.  
+
+%------------- BEGIN CODE --------------
     
     num_amplitude_feats = 6;
     num_sensors = size(data,2); 

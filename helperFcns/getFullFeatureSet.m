@@ -1,4 +1,23 @@
-function [featCell, featureLabels, d_combo] = getFullFeatureSet(clean_data, fs, frange, minpkdist)
+function [featCell, featureLabels] = getFullFeatureSet(clean_data, fs, frange, minpkdist)
+%getFullFeatureSet - assemble feature set for each patient with data the
+%table clean_data
+%
+% Syntax: [featCell, featureLabels, d_combo] = getFullFeatureSet(clean_data, fs, frange, minpkdist)
+%
+% Inputs:
+%    clean_data - A table containing vectors for each data signal, and
+%    entries for  each patient. 
+%    fs - data sampling rage
+%    frange- frequency range endpoints for computing average frequency
+%    minpkdist - minimum spacing between detected peaks, input to findpeaks
+%    function
+%
+% Outputs:
+%    featCell - a cell array containing a feature matrix for each patient
+%    featureLabels- feature name lookup cell array
+
+%------------- BEGIN CODE --------------
+     
 
     mat= table2array(clean_data);
      

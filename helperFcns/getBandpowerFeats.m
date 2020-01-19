@@ -1,4 +1,18 @@
 function [feats_Frequency] = getBandpowerFeats(data,fs,frange)
+%getBandpowerFeats - quantify statistics of the signal in the frequency domain
+%
+% Syntax: [feats_Frequency] = getBandpowerFeats(data,fs,frange)
+%
+% Inputs:
+%    data - TxN matrix with timeseries data in columns
+%    fs - data sampling rage
+%    frange- frequency range endpoints for computing average frequency
+%
+% Outputs:
+%    feats_Frequency - a 4xN feature array with mean frequency, and signal
+%    power in low, middle, and high bands for each time series along the columns.  
+
+%------------- BEGIN CODE --------------
      
      favg = meanfreq(data,fs,frange);
      
