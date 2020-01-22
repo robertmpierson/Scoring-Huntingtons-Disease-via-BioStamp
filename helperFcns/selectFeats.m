@@ -29,11 +29,5 @@ function [selected_fts, selected_test_fts, fLabels] = selectFeats(allTrainFeats,
     
     disp([type,' -- Number of Features Selected from LASSO = ',num2str(length(fLabels))])
     disp(fLabels)
-    
-    % Write ouptut to file
-    writecell({sprintf('nTrain: %d',length(train_labels)); sprintf('nTest: %d',length(test_labels))}, ...
-         [dataDir, '/resultsTable.xlsx'], 'Sheet', type, 'Range', 'A1');
-    writecell(['FEATURES: '; fLabels], [dataDir, '/resultsTable.xlsx'], 'Sheet', type, 'Range', 'B1');
-    
-   
+     
 end

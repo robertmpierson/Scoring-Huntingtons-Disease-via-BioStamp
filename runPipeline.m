@@ -10,89 +10,121 @@ addpath('helperFcns')
 % patients, indexed by i_test, i_train, and i_testHD and i_trainHD
 % respectively.
 
+Pts= (1:numPatients);
+
 % Obtain/Load Feature Table
 run('get_features.m')
 
-% Split Training/Test sets
-hold_out= .3;                                       % ratio from total data to hold as test set                                         
-
-rng(11);                                            % Split data reproducibly                                              
-Pts= (1:numPatients);
-splt = cvpartition(numPatients,'HoldOut',hold_out);
-i_test= Pts(splt.test); i_train= Pts(~splt.test);   % All training & testing set idx     
-
-% Obtain labels, 0- healthy control, 1- HD patient
-labels_PtStatus = labels{i_train,1};
-labels_PtStatus_test = labels{i_test,1};
-
-i_testHD = i_test(logical(labels_PtStatus_test));    % HD Testing set idx 
-i_trainHD = i_train(logical(labels_PtStatus));       % HD Training set idx 
-
 % Aggregate features into feature matrix
 features_all=[];   
-    % Array "features" will be size [nPatients x (nSensor Signals)(nFeatures)].
-    % Row organization: [s1f1, s1f2... s1fn s2f1, s2f2, ...s2fn... snfn],
-    % where f1s1 is feature 1 measured at sensor 1. 
-      
-    % Select features for each task according to iFeats, concatenate into
-    % "features" matrix
-    for tname = taskList
-        fts= featureTables.(tname{1})(Pts);                                                     
-        features_all= [features_all, cell2mat(cellfun(@(x)reshape(x,1,[]), fts,...
-            'UniformOutput', false))];
-    end
-    
-    disp('Features aggregated')
-    
-    % compile & normalize training/test set features for all subjects
-    trn_mn= mean(features_all(i_train,:)); trn_std=std(features_all(i_train,:));
-    features= normalize(features_all(i_train,:));                % all training set features
-    features_test = (features_all(i_test,:)-trn_mn)./trn_std;    % all test set features
-    
-     % compile & normalize training/test set features for HD patients only
-    trn_mnHD= mean(features_all(i_trainHD,:)); trn_stdHD=std(features_all(i_trainHD,:));
-    featuresHD= normalize(features_all(i_trainHD,:));        
-    featuresHD_test = (features_all(i_testHD,:)-trn_mnHD)./trn_stdHD; 
-    
-    nFts=numel(featureTables.labels);
-    
-    disp('Features have been Normalized')
-    
-    save([dataDir, '/split_features.mat'], 'features', 'features_test', 'featuresHD', 'featuresHD_test');
-    
+% Array "features" will be size [nPatients x (nSensor Signals)(nFeatures)].
+% Row organization: [s1f1, s1f2... s1fn s2f1, s2f2, ...s2fn... snfn],
+% where f1s1 is feature 1 measured at sensor 1. 
 
-%% 2) BINARY CLASSIFICATION 
-
-type = 'Binary_Classification';
-
-disp('Selecting Features...')
-[selected_fts, selected_test_fts, flabels]= selectFeats(features,features_test, ...
-    labels_PtStatus, labels_PtStatus_test, featureTables.labels, taskList, ...
-    type, dataDir, true);
-
-classifier_application_app_Mx = array2table([selected_fts,labels_PtStatus], ...
-    'VariableNames', [flabels','predictor']);
-
-disp('Training Classifiers ...')
-[binary_class_models, modelList, validationAccuracies] = trainClassifiers(classifier_application_app_Mx);
-
-disp('Tabulating results ...')
-for model_num= 1:length(modelList)
-    chosenModel= binary_class_models{model_num};
-    model_name= chosenModel.model_name; 
-
-    % This function calculates testing and training accuracy, and saves to
-    % excel file in dataDir
-    [trn_acc, tst_acc, AUC] = getModelResults(chosenModel, model_name, model_num,...
-    'Binary_Classification', selected_fts, selected_test_fts, ...
-    labels_PtStatus, labels_PtStatus_test, flabels, [0,1], dataDir, true);
+% Select features for each task according to iFeats, concatenate into
+% "features" matrix
+for tname = taskList
+    fts= featureTables.(tname{1})(Pts);                                                     
+    features_all= [features_all, cell2mat(cellfun(@(x)reshape(x,1,[]), fts,...
+        'UniformOutput', false))];
 end
 
-save([dataDir, '/Models/Binary_Classification.mat'], 'binary_class_models', ...
-    'selected_fts', 'selected_test_fts', 'labels_PtStatus',...
-    'labels_PtStatus_test', 'flabels', 'classifier_application_app_Mx')
- 
+nFts=numel(featureTables.labels);
+disp('Features aggregated')
+
+save([dataDir, '/feature_matrix.mat'], 'features_all')
+    
+
+%% 2) BINARY CLASSIFICATION CV
+
+type = 'Binary_Classification';
+Pts= (1:numPatients);
+
+cv_feats= cell(1, numPatients);
+cv_model_performance= cell(1,numPatients); 
+
+% Perform leave-one-out CV
+tic
+for pt_test=1:numPatients
+
+    fprintf('pt %d', pt_test)
+    
+    % Form Training/Test sets
+    pt_train= Pts(Pts~=pt_test); 
+    labels_PtStatus = labels{pt_train,1};
+    labels_PtStatus_test = labels{pt_test,1};
+    
+    trn_mn= mean(features_all(pt_train,:)); trn_std=std(features_all(pt_train,:));
+    features= normalize(features_all(pt_train,:));                % all training set features
+    features_test = (features_all(pt_test,:)-trn_mn)./trn_std;    % all test set features
+    
+    
+    disp('Selecting Features...')
+    [selected_fts, selected_test_fts, flabels]= selectFeats(features,features_test, ...
+        labels_PtStatus, labels_PtStatus_test, featureTables.labels, taskList, ...
+        type, dataDir, true);
+    
+    cv_feats{pt_test}=flabels; 
+
+    classifier_application_app_Mx = array2table([selected_fts,labels_PtStatus], ...
+        'VariableNames', [flabels','predictor']);
+
+    disp('Training Classifiers ...')
+    [binary_class_models, modelList, validationAccuracies] = trainClassifiers(classifier_application_app_Mx);
+
+    disp('Tabulating results ...')
+    model_performance= zeros(length(modelList), 3); 
+    for model_num= 1:length(modelList)
+        chosenModel= binary_class_models{model_num};
+        model_name= chosenModel.model_name; 
+
+        % This function calculates testing and training accuracy, and saves to
+        % excel file in dataDir
+        [trn_acc, tst_acc, AUC] = getModelResults(chosenModel, model_name, model_num,...
+        'Binary_Classification', selected_fts, selected_test_fts, ...
+        labels_PtStatus, labels_PtStatus_test, flabels, [0,1], dataDir, true);
+        
+        model_performance(model_num,:)=[trn_acc, tst_acc, AUC]; 
+    end
+
+    cv_model_performance{pt_test}= model_performance;
+
+end
+toc
+
+%% Classification Results
+
+% Calculate average CV test and train accuracy
+cv_mat= cell2mat(cv_model_performance);
+
+% Gather list of missed data points
+[mod, m_pt]=find(cv_mat(:,2:3:end)==0);     
+missed= arrayfun(@(x)num2str(m_pt(m==x)'),[1:length(modelList)],'UniformOutput',false)';
+
+% Get true/false positives, true/false negatives for each model
+TP= (cv_mat(:,2:3:end)~=0)*(labels{:,1}==1); 
+TN= (cv_mat(:,2:3:end)~=0)*(labels{:,1}==0);
+FN= (cv_mat(:,2:3:end)==0)*(labels{:,1}==1);    % predicted as 0 when actually 1
+FP=(cv_mat(:,2:3:end)==0)*(labels{:,1}==0);     % predicted as 1 when actually 0
+
+bin_results_table= table(mean(cv_mat(:,1:3:end),2), mean(cv_mat(:,2:3:end),2),TP, FP, TN, FN, missed,...
+    'VariableNames', {'CV_train_acc', 'CV_tst_acc', 'TP', 'FP', 'TN', 'FN', 'missed'},...
+    'RowNames', modelList)
+
+% Tabulate how often each feature was selected throughout cross validation
+allfts= vertcat(cv_feats{:}); ufts= unique(allfts);
+feat_freqs= cellfun(@(x) sum(ismember(allfts,x)), ufts);
+[a, b]=sort(feat_freqs); 
+ft_countss_table= table(ufts(b), a, 'VariableNames', {'Feature', 'count'})
+
+
+save([dataDir, '/Models/Binary_Classification.mat'], 'cv_feats',...
+    'cv_model_performance', 'bin_results_table', 'ft_countss_table')
+
+
 disp('Binary Classification Done')
+
+
 %% 2) REGRESSION MODELS
 
 % Instructions: 
