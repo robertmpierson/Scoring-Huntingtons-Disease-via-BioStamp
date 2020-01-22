@@ -41,7 +41,7 @@ Finally, the 'settings.m' file enables the user to control signal processing and
 
 ### Regression Models
 - After binary classification determines the HD symptomatic patients, this section predicts the score for each of these patients in different categories of abnormal muscle movement.  In this section, you can select which category of abnormal muscle movement you would like to predict the score of.  Uncomment variables for the desired feature and label set, then run this section.
-- This section selects the most useful features for scoring the selected abnormal muscle movement, by using Matlab's LASSO function.  It uses these features to build a regression model for predicting the score of the selected abnormal muscle movement.
+- Run this section.  This section selects the most useful features for scoring the selected abnormal muscle movement, by using Matlab's LASSO function.  It uses these features to build a regression model for predicting the score of the selected abnormal muscle movement.
 
 ### Regression Analysis
 - Run this section.  This section compiles 'getModelResults.m' which calculates the testing and training accuracy and saves the results to spreadsheet, 'resultsTable.xlsx', which summarizes model performance metrics.
