@@ -1,5 +1,5 @@
 function [selected_fts, selected_test_fts, fLabels] = selectFeats(allTrainFeats, allTestFeats,...
-    train_labels, test_labels, labelset, taskList, type, dataDir, isbinary)
+    train_labels, labelset, taskList, type, isbinary)
 
     % Binary Classification
     if isbinary

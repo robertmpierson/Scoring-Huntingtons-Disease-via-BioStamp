@@ -235,7 +235,7 @@ ensemblePredictFcn = @(x) predict(regressionEnsemble, x);
 trainedModels{ctr}.predictFcn = @(x) ensemblePredictFcn(predictorExtractionFcn(x));
 trainedModels{ctr}.RequiredVariables = predictorNames;
 trainedModels{ctr}.RegressionEnsemble = regressionEnsemble;
-trainedModels{ctr}.model_name = 'ensemble boosted trees';
+trainedModels{ctr}.model_name = 'ensemble bagged trees';
 modelList{ctr}=trainedModels{ctr}.model_name;
 
 partitionedModel = crossval(trainedModels{ctr}.RegressionEnsemble, 'KFold', 5);
