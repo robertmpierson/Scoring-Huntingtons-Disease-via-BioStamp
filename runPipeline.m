@@ -4,213 +4,223 @@ clear all
 run('settings.m')
 addpath('helperFcns')
  
+Pts= (1:numPatients);
 %% 1) SETUP
 % loads the raw data and computes a feature matrix for all subjects, then
 % splits the matrix into testing and training sets for all patients, and HD
 % patients, indexed by i_test, i_train, and i_testHD and i_trainHD
 % respectively.
 
+
+
 % Obtain/Load Feature Table
 run('get_features.m')
 
-% Split Training/Test sets
-hold_out= .3;                                       % ratio from total data to hold as test set                                         
-
-rng(11);                                            % Split data reproducibly                                              
-Pts= (1:numPatients);
-splt = cvpartition(numPatients,'HoldOut',hold_out);
-i_test= Pts(splt.test); i_train= Pts(~splt.test);   % All training & testing set idx     
-
-% Obtain labels, 0- healthy control, 1- HD patient
-labels_PtStatus = labels{i_train,1};
-labels_PtStatus_test = labels{i_test,1};
-
-i_testHD = i_test(logical(labels_PtStatus_test));    % HD Testing set idx 
-i_trainHD = i_train(logical(labels_PtStatus));       % HD Training set idx 
-
 % Aggregate features into feature matrix
 features_all=[];   
-    % Array "features" will be size [nPatients x (nSensor Signals)(nFeatures)].
-    % Row organization: [s1f1, s1f2... s1fn s2f1, s2f2, ...s2fn... snfn],
-    % where f1s1 is feature 1 measured at sensor 1. 
-      
-    % Select features for each task according to iFeats, concatenate into
-    % "features" matrix
-    for tname = taskList
-        fts= featureTables.(tname{1})(Pts);                                                     
-        features_all= [features_all, cell2mat(cellfun(@(x)reshape(x,1,[]), fts,...
-            'UniformOutput', false))];
-    end
-    
-    disp('Features aggregated')
-    
-    % compile & normalize training/test set features for all subjects
-    trn_mn= mean(features_all(i_train,:)); trn_std=std(features_all(i_train,:));
-    features= normalize(features_all(i_train,:));                % all training set features
-    features_test = (features_all(i_test,:)-trn_mn)./trn_std;    % all test set features
-    
-     % compile & normalize training/test set features for HD patients only
-    trn_mnHD= mean(features_all(i_trainHD,:)); trn_stdHD=std(features_all(i_trainHD,:));
-    featuresHD= normalize(features_all(i_trainHD,:));        
-    featuresHD_test = (features_all(i_testHD,:)-trn_mnHD)./trn_stdHD; 
-    
-    nFts=numel(featureTables.labels);
-    
-    disp('Features have been Normalized')
-    
-    save([dataDir, '/split_features.mat'], 'features', 'features_test', 'featuresHD', 'featuresHD_test');
+% Array "features" will be size [nPatients x (nSensor Signals)(nFeatures)].
+% Row organization: [s1f1, s1f2... s1fn s2f1, s2f2, ...s2fn... snfn],
+% where f1s1 is feature 1 measured at sensor 1. 
+
+% Select features for each task according to iFeats, concatenate into
+% "features" matrix
+for tname = taskList
+    fts= featureTables.(tname{1})(Pts);                                                     
+    features_all= [features_all, cell2mat(cellfun(@(x)reshape(x,1,[]), fts,...
+        'UniformOutput', false))];
+end
+
+nFts=numel(featureTables.labels);
+disp('Features aggregated')
+
+save([dataDir, '/feature_matrix.mat'], 'features_all')
     
 
-%% 2) BINARY CLASSIFICATION 
+%% 2) BINARY CLASSIFICATION CV
 
 type = 'Binary_Classification';
+Pts= (1:numPatients);
 
-disp('Selecting Features...')
-[selected_fts, selected_test_fts, flabels]= selectFeats(features,features_test, ...
-    labels_PtStatus, labels_PtStatus_test, featureTables.labels, taskList, ...
-    type, dataDir, true);
+cv_feats= cell(1, numPatients);
+cv_model_performance= cell(1,numPatients); 
 
-classifier_application_app_Mx = array2table([selected_fts,labels_PtStatus], ...
-    'VariableNames', [flabels','predictor']);
+% Perform leave-one-out CV
+tic
+for pt_test=1:numPatients
 
-disp('Training Classifiers ...')
-[binary_class_models, modelList, validationAccuracies] = trainClassifiers(classifier_application_app_Mx);
+    fprintf('pt %d', pt_test)
+    
+    % Form Training/Test sets
+    pt_train= Pts(Pts~=pt_test); 
+    labels_PtStatus = labels.PtStatus(pt_train);
+    labels_PtStatus_test = labels.PtStatus(pt_test);
+    
+    trn_mn= mean(features_all(pt_train,:)); trn_std=std(features_all(pt_train,:));
+    features= normalize(features_all(pt_train,:));                % all training set features
+    features_test = (features_all(pt_test,:)-trn_mn)./trn_std;    % all test set features
+    
+    
+    disp('Selecting Features...')
+    [selected_fts, selected_test_fts, flabels]= selectFeats(features,features_test, ...
+        labels_PtStatus, featureTables.labels, taskList, type, true);
+    
+    cv_feats{pt_test}=flabels; 
 
-disp('Tabulating results ...')
-for model_num= 1:length(modelList)
-    chosenModel= binary_class_models{model_num};
-    model_name= chosenModel.model_name; 
+    classifier_application_app_Mx = array2table([selected_fts,labels_PtStatus], ...
+        'VariableNames', [flabels','predictor']);
 
-    % This function calculates testing and training accuracy, and saves to
-    % excel file in dataDir
-    [trn_acc, tst_acc, AUC] = getModelResults(chosenModel, model_name, model_num,...
-    'Binary_Classification', selected_fts, selected_test_fts, ...
-    labels_PtStatus, labels_PtStatus_test, flabels, [0,1], dataDir, true);
+    disp('Training Classifiers ...')
+    [binary_class_models, modelList, validationAccuracies] = trainClassifiers(classifier_application_app_Mx);
+
+    disp('Tabulating results ...')
+    model_performance= zeros(length(modelList), 3); 
+    for model_num= 1:length(modelList)
+        chosenModel= binary_class_models{model_num};
+        model_name= chosenModel.model_name; 
+
+        % This function calculates testing and training accuracy, and saves to
+        % excel file in dataDir
+        [trn_acc, tst_acc, AUC] = getModelResults(chosenModel, model_name,...
+            selected_fts, selected_test_fts, labels_PtStatus, ...
+            labels_PtStatus_test, flabels, [0,1], true);
+        
+        model_performance(model_num,:)=[trn_acc, tst_acc, AUC]; 
+    end
+
+    cv_model_performance{pt_test}= model_performance;
+
 end
+toc
 
-save([dataDir, '/Models/Binary_Classification.mat'], 'binary_class_models', ...
-    'selected_fts', 'selected_test_fts', 'labels_PtStatus',...
-    'labels_PtStatus_test', 'flabels', 'classifier_application_app_Mx')
- 
+disp('Classification CV done')
+
+%% Compute and Save Classification Results
+
+% Calculate average CV test and train accuracy
+cv_mat= cell2mat(cv_model_performance);
+
+% Gather list of missed data points
+[mod, m_pt]=find(cv_mat(:,2:3:end)==0);     
+missed= arrayfun(@(x)num2str(m_pt(m==x)'),[1:length(modelList)],'UniformOutput',false)';
+
+% Get true/false positives, true/false negatives for each model
+TP= (cv_mat(:,2:3:end)~=0)*(labels.PtStatus==1); 
+TN= (cv_mat(:,2:3:end)~=0)*(labels.PtStatus==0);
+FN= (cv_mat(:,2:3:end)==0)*(labels.PtStatus==1);    % predicted as 0 when actually 1
+FP=(cv_mat(:,2:3:end)==0)*(labels.PtStatus==0);     % predicted as 1 when actually 0
+
+bin_results_table= table(mean(cv_mat(:,1:3:end),2), mean(cv_mat(:,2:3:end),2),TP, FP, TN, FN, missed,...
+    'VariableNames', {'CV_train_acc', 'CV_tst_acc', 'TP', 'FP', 'TN', 'FN', 'missed'},...
+    'RowNames', modelList)
+
+% Tabulate how often each feature was selected throughout cross validation
+allfts= vertcat(cv_feats{:}); ufts= unique(allfts);
+feat_freqs= cellfun(@(x) sum(ismember(allfts,x)), ufts);
+[a, b]=sort(feat_freqs); 
+ft_countss_table= table(ufts(b), a, 'VariableNames', {'Feature', 'count'})
+
+
+save([dataDir, '/Results/Binary_Classification.mat'], 'cv_feats',...
+    'cv_model_performance', 'bin_results_table', 'ft_countss_table')
+
+
 disp('Binary Classification Done')
-%% 2) REGRESSION MODELS
-
-% Instructions: 
-% Uncomment desired feature set and run this section. 
-
-% GAIT ANALYSIS % % 
-% type= 'Gait_Regression'
-% reg_features = featuresHD; %(:,2/3*size(featuresHD,2)+1:end);
-% reg_features_test = featuresHD_test; %(:,2/3* size(featuresHD,2)+1:end);
-% labelset=featureTables.labels;
-% reg_labels = labels{i_trainHD,22};
-% reg_labels_test = labels{i_testHD,22};
-% rng = [0,4];
-
-% % TANDEM GAIT ANALYSIS % % 
-% type= 'Tandem Gait_Regression'
-% reg_features = featuresHD; %(:,2/3*size(featuresHD,2)+1:end);
-% reg_features_test = featuresHD_test %(:,2/3* size(featuresHD,2)+1:end);
-% reg_labels = labels{i_trainHD,23};
-% reg_labels_test = labels{i_testHD,23};
-% rng = [0,4];
-
-% ARM RIGIDITY % % 
-% type= 'RArm_Rigidity_Regression',
-% iFts= find(contains(featureTables.labels, 'Rforearm'))+[0,104,208];
-% reg_features = featuresHD(:,iFts);
-% reg_features_test = featuresHD_test(:,iFts); 
-% reg_labels = labels{i_trainHD,18};
-% reg_labels_test = labels{i_testHD,18};
-% labelset=featureTables.labels(iFts(:,1));
-% rng = [0,4];
-
-% type= 'LArm_Rigidity_Regression',
-% iFts= find(contains(featureTables.labels, 'Lforearm'))+[0,104,208];
-% reg_features = featuresHD(:,iFts);
-% reg_features_test = featuresHD_test(:,iFts); 
-% reg_labels = labels{i_trainHD,19};
-% reg_labels_test = labels{i_testHD,19};
-% labelset=featureTables.labels(iFts(:,1));
-% rng = [0,4];
-
-% % FINGER TAPS % % 
-% type= 'Finger_Taps_Regression_right'
-% % Get all Rforearm fts across 3 tasks
-% iFts= find(contains(featureTables.labels, 'Rforearm'))+(0:2)*nFts; 
-% reg_features = featuresHD(:,iFts); 
-% reg_features_test = featuresHD_test(:,iFts); 
-% reg_labels = labels{i_trainHD,14};
-% reg_labels_test = labels{i_testHD,14};
-% labelset=featureTables.labels(iFts(:,1));
-% rng = [0,4];
-
-% type= 'Finger_Taps_Regression_left'
-% % Get all Rforearm fts across 3 tasks
-% iFts= find(contains(featureTables.labels, 'Lforearm'))+(0:2)*nFts; 
-% reg_features = featuresHD(:,iFts); 
-% reg_features_test = featuresHD_test(:,iFts); 
-% reg_labels = labels{i_trainHD,15};
-% reg_labels_test = labels{i_testHD,15};
-% labelset=featureTables.labels(iFts(:,1));
-% rng = [0,4];
-
-% % DYSTONIA % % 
-% type= 'Dystonia_Regression'
-% reg_features = featuresHD
-% reg_features_test = featuresHD_test 
-% reg_labels = labels{i_trainHD,11};
-% reg_labels_test = labels{i_testHD,11};
-% labelset=featureTables.labels
-% rng = [0,20];
 
 
-% CHOREA % % 
-% type= 'Chorea_Regression'
-% reg_features = featuresHD
-% reg_features_test = featuresHD_test
-% reg_labels = labels{i_trainHD,12};
-% reg_labels_test = labels{i_testHD,12};
-% labelset=featureTables.labels
-% rng = [0,28];
+%% 2) REGRESSION MODEL CV
 
-% BRADYKENESIA % % 
-% type= 'Bradykenesia_Regression'
-% reg_features = featuresHD
-% reg_features_test = featuresHD_test
-% reg_labels = labels{i_trainHD,21};
-% reg_labels_test = labels{i_testHD,21};
-% labelset=featureTables.labels
-% rng = [0,4];
 
-% ALL THE ABOVE
-% type= 'All_selected_subscores'
-% reg_features = featuresHD
-% reg_features_test = featuresHD_test
-% reg_labels = sum(labels{i_trainHD,[11,12,15,19,21,22,23]},2);
-% reg_labels_test = sum(labels{i_testHD,[11,12,15,19,21,22,23]},2);
-% labelset= featureTables.labels
-% rng = [0,80];
+% Define subscore categories in "labels" table to predict
+subscores= {'Gait', 'TandemGait', ...
+    'Rigidity_RIGHTArm', 'Rigidity_LEFTArm', ...
+    'FingerTaps_RIGHT', 'FingerTaps_LEFT',...
+    'MaximalDystonia_trunkAnd4Extremities_',...
+    'MaximalChorea_face_Mouth_Trunk_And4Extremities_', ...
+    'Bradykinesia_body_', ...
+    'combined_subscores'};
 
-disp('Selecting Features...')
-[selected_fts, selected_test_fts, flabels]= selectFeats(reg_features,reg_features_test, ...
-    reg_labels, reg_labels_test, labelset, taskList, type, dataDir, false);
+labels.combined_subscores=sum(labels{:,[11,12,15,20,21,22,23]},2); 
+HDPts= Pts(logical(labels.PtStatus));
 
-disp('Training Classifiers ...')
-regressionlearner_mx= array2table([selected_fts, reg_labels], 'VariableNames', [flabels', 'predictor']);
-[class_models, modelList, validationRMSE] = trainRegressionModels(regressionlearner_mx);
-  
-disp('Tabulating results ...')
-for model_num= 1:length(modelList)
-    chosenModel= class_models{model_num};
-    model_name= chosenModel.model_name;
+% iterate through all subscores
+for i_scr = (1:length(subscores))
+    
+    type= subscores{i_scr};     % subscore type
+    scrs=labels.(type);         % True subscores
+    
+    cv_reg_feats= cell(1, numPatients);
+    cv_reg_model_performance= cell(1,numPatients); 
+    
+    % Set score range
+    if strcmp(type, 'MaximalChorea_face_Mouth_Trunk_And4Extremities_'), rng = [0,28];
+    elseif strcmp(type, 'MaximalDystonia_trunkAnd4Extremities_'), rng = [0,20];
+    elseif strcmp(type, 'combined_subscores'), rng = [0,80];
+    else, rng = [0,4];
+    end
 
-    % This function calculates testing and training accuracy, and saves to
-    % excel file in dataDir
-    [trn_ME, tst_ME, trntst_corrs] = getModelResults(chosenModel, ...
-        model_name, model_num, type, selected_fts, selected_test_fts, reg_labels,...
-        reg_labels_test, flabels, rng, dataDir, false)
+% Perform leave one out CV to predict subscore
+for pt_test=1:numPatients
+
+    fprintf('pt %d\n', pt_test)
+    
+    % Form Training/Test sets
+    pt_train= HDPts(HDPts~=pt_test); 
+    reg_labels = scr(pt_train);
+    reg_labels_test = scr(pt_test);
+    
+    trn_mn= mean(features_all(pt_train,:)); trn_std=std(features_all(pt_train,:));
+    features= normalize(features_all(pt_train,:));                % all training set features
+    features_test = (features_all(pt_test,:)-trn_mn)./trn_std;    % all test set features
+
+    disp('Selecting Features...')
+    [selected_fts, selected_test_fts, flabels]= selectFeats(features, features_test, ...
+        reg_labels, featureTables.labels, taskList, type, false);
+    cv_feats{pt_test}=flabels; 
+
+    disp('Training Classifiers ...')
+    regressionlearner_mx= array2table([selected_fts, reg_labels], 'VariableNames', [flabels', 'predictor']);
+    [class_models, modelList, validationRMSE] = trainRegressionModels(regressionlearner_mx);
+
+    disp('Tabulating results ...')
+
+    model_performance= zeros(length(modelList), 3); 
+    for model_num= 1:length(modelList)
+        chosenModel= class_models{model_num};
+        model_name= chosenModel.model_name;
+
+        % This function calculates testing and training accuracy, and saves to
+        % excel file in dataDir
+        [trn_ME, tst_ME, trntst_corrs, y_tst] = getModelResults(chosenModel, ...
+            model_name, selected_fts, selected_test_fts, reg_labels,...
+            reg_labels_test, flabels, rng, false);
+
+        model_performance(model_num,:)=[trn_ME, tst_ME, y_tst];
+    end
+    
+    cv_model_performance{pt_test}= model_performance;
+    
 end
 
-save([dataDir,'/Models/' type, '.mat'],'selected_fts', 'selected_test_fts',...
-    'reg_labels', 'reg_labels_test', 'flabels', 'regressionlearner_mx', 'class_models')
+
+% Compile results
+cv_mat= cell2mat(cv_model_performance);
+error= cv_mat(:,3:3:end)-scrs';  
+reg_results_table= table(error,'RowNames', modelList);
+reg_results_table.pcnt_error=reg_results_table.error/rng(2)*100;
+reg_results_table.abs_mn_error_HD =  mean(abs(reg_results_table.error(:,HDPts)),2);
+reg_results_table.abs_mn_error_HD_pcnt =  reg_results_table.abs_mn_error_HD/rng(2)*100;
+reg_results_table.abs_mn_error_all= mean(abs(reg_results_table.error),2);
+reg_results_table.abs_mn_error_all_pcnt= reg_results_table.abs_mn_error_all/rng(2)*100
+
+% Tabulate how often each feature was selected throughout cross validation
+allfts= vertcat(cv_feats{:}); ufts= unique(allfts);
+feat_freqs= cellfun(@(x) sum(ismember(allfts,x)), ufts);
+[a, b]=sort(feat_freqs); 
+ft_counts_table= table(ufts(b), a, 'VariableNames', {'Feature', 'count'});
+
+save([dataDir,'/Results/' type, '.mat'],'cv_feats', 'cv_model_performance', 'type', ...
+    'reg_results_table', 'ft_counts_table', 'rng')
+
+fprintf('%s CV done\n', type)
+
+end
