@@ -4,13 +4,14 @@ clear all
 run('settings.m')
 addpath('helperFcns')
  
+Pts= (1:numPatients);
 %% 1) SETUP
 % loads the raw data and computes a feature matrix for all subjects, then
 % splits the matrix into testing and training sets for all patients, and HD
 % patients, indexed by i_test, i_train, and i_testHD and i_trainHD
 % respectively.
 
-Pts= (1:numPatients);
+
 
 % Obtain/Load Feature Table
 run('get_features.m')
@@ -130,7 +131,7 @@ disp('Binary Classification Done')
 
 
 % Define subscore categories in "labels" table to predict
-subscores= { ... %'Gait', 'TandemGait', ...
+subscores= {'Gait', 'TandemGait', ...
     'Rigidity_RIGHTArm', 'Rigidity_LEFTArm', ...
     'FingerTaps_RIGHT', 'FingerTaps_LEFT',...
     'MaximalDystonia_trunkAnd4Extremities_',...
@@ -203,7 +204,7 @@ end
 
 % Compile results
 cv_mat= cell2mat(cv_model_performance);
-error= cv_mat(:,3:3:end)-scr';  
+error= cv_mat(:,3:3:end)-scrs';  
 reg_results_table= table(error,'RowNames', modelList);
 reg_results_table.pcnt_error=reg_results_table.error/rng(2)*100;
 reg_results_table.abs_mn_error_HD =  mean(abs(reg_results_table.error(:,HDPts)),2);
