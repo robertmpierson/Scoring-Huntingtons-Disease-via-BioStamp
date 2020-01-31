@@ -12,7 +12,6 @@ Pts= (1:numPatients);
 % respectively.
 
 
-
 % Obtain/Load Feature Table
 run('get_features.m')
 
@@ -101,7 +100,7 @@ cv_mat= cell2mat(cv_model_performance);
 
 % Gather list of missed data points
 [mod, m_pt]=find(cv_mat(:,2:3:end)==0);     
-missed= arrayfun(@(x)num2str(m_pt(m==x)'),[1:length(modelList)],'UniformOutput',false)';
+missed= arrayfun(@(x)num2str(m_pt(m==x)'),(1:length(modelList)),'UniformOutput',false)';
 
 % Get true/false positives, true/false negatives for each model
 TP= (cv_mat(:,2:3:end)~=0)*(labels.PtStatus==1); 
@@ -165,8 +164,8 @@ for pt_test=1:numPatients
     
     % Form Training/Test sets
     pt_train= HDPts(HDPts~=pt_test); 
-    reg_labels = scr(pt_train);
-    reg_labels_test = scr(pt_test);
+    reg_labels = scrs(pt_train);
+    reg_labels_test = scrs(pt_test);
     
     trn_mn= mean(features_all(pt_train,:)); trn_std=std(features_all(pt_train,:));
     features= normalize(features_all(pt_train,:));                % all training set features
@@ -224,3 +223,29 @@ save([dataDir,'/Results/' type, '.mat'],'cv_feats', 'cv_model_performance', 'typ
 fprintf('%s CV done\n', type)
 
 end
+
+%% Calculate Overall Model Score:
+
+type= 'combined_subscores'; % type of UHDRS subscore to predict
+
+load(fullfile(dataDir,'/Results/Binary_Classification.mat'))
+load([dataDir,'/Results/' type, '.mat']) 
+
+i_binmod= 1; % index of binary classifier model to use
+i_regmod= 7; % index of regression model to use
+
+missed= cellfun(@str2num, strsplit(bin_results_table.missed{i_binmod},' '));
+FN= missed(ismember(HDPts, missed));        % index of false negatives
+FP= missed(~ismember(missed, HDPts));       % index of false positives
+
+totalScores=zeros(28,1);
+totalScores([HDPts, FP])= reg_results_table.pcnt_error(i_binmod,unique([HDPts, FP]));
+totalScores(FN)=0; 
+
+final_scr= mean(abs(totalScores))
+final_scr_pcnt= final_scr/rng(2)*100
+
+
+
+
+
