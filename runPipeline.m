@@ -34,6 +34,7 @@ disp('Features aggregated')
 
 save([dataDir, '/feature_matrix.mat'], 'features_all')
     
+HDPts= Pts(logical(labels.PtStatus));
 
 %% 2) BINARY CLASSIFICATION CV
 
@@ -139,7 +140,6 @@ subscores= {'Gait', 'TandemGait', ...
     'combined_subscores'};
 
 labels.combined_subscores=sum(labels{:,[11,12,15,20,21,22,23]},2); 
-HDPts= Pts(logical(labels.PtStatus));
 
 % iterate through all subscores
 for i_scr = (1:length(subscores))
@@ -239,12 +239,17 @@ FN= missed(ismember(HDPts, missed));        % index of false negatives
 FP= missed(~ismember(missed, HDPts));       % index of false positives
 
 totalScores=zeros(28,1);
-totalScores([HDPts, FP])= reg_results_table.pcnt_error(i_binmod,unique([HDPts, FP]));
+totalScores([HDPts, FP])= reg_results_table.error(i_regmod,unique([HDPts, FP]));
 totalScores(FN)=0; 
 
-final_scr= mean(abs(totalScores))
-final_scr_pcnt= final_scr/rng(2)*100
+final_error= mean(abs(totalScores));
+final_error_pcnt= final_error/rng(2)*100;
 
+fprintf(['Using the %s classifier and %s regression model to predict %s.\n',...
+    'Mean error magnitude: %0.2f, normalized mean error: %0.2f%%\n'],...
+bin_results_table.Properties.RowNames{i_binmod}, ...
+reg_results_table.Properties.RowNames{i_regmod}, type, ...
+final_error, final_error_pcnt)
 
 
 
