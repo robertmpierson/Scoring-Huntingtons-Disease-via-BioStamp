@@ -27,7 +27,7 @@ The 'settings.m' file enables the user to set a number of parameters, to allow r
 
 Finally, the 'settings.m' file enables the user to control signal processing and analysis, via several binary toggles.  The user can control the inclusion of angular acceleration and angular displacement, derived from gyroscope angular velocity data.  The user can control the inclusion of velocity and displacement, derived from accelerometer accceleration data.  The user can use a binary toggle to include all features in their machine-learning, or use MATLAB's LASSO function to reduce the feature space.  The user can use a binary toggle to remove data from the beginning/end of datasets and, if so, how much data to remove.
 
-## Running the Pipeline (TODO: update this section)
+## Running the Pipeline
 ### Setup
 - Run this section.  This section computes features on the input data, then splits the feature set into training and test sets. The size of the testing and training sets can be changed by updating the hold_out variable.  This variable indicates what fraction of the patients to exclude from the analysis and later use as the test set. Run this section to select features, patients, labels for training and cross validation.  Running this section will compile the following files: 'settings.m' and 'get_features.m'
   - Running 'settings.m' will load the program parameters:  sampling rate, number of patients, number of input signals, as well as the chosen method of pre-processing, feature extraction and feature selection.  
