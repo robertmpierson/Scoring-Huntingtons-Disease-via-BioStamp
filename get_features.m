@@ -7,7 +7,7 @@ addpath('helperFcns')
 if exist(fullfile(dataDir, featFilename),'file') > 0
     fprintf('loading %s, delete and rerun to recompute\n', featFilename)
     load(fullfile(dataDir, featFilename)); 
-    load(fullfile(dataDir,'labels.mat'));
+    load(fullfile('rawData','labels.mat'));
     disp('features loaded');
     return;
 end
@@ -17,8 +17,8 @@ end
 % already exist, load .mat files. 
 
 disp('loading raw data')
-[dataTables]= loadSensorData(dataDir, taskList);
-load(fullfile(dataDir,'labels.mat'))
+[dataTables]= loadSensorData('rawData', taskList);
+load(fullfile('rawData','labels.mat'))
 disp('data loaded')
 
 
@@ -53,6 +53,8 @@ end
 save(fullfile(dataDir,'dataTables.mat'), 'dataTables'); 
 disp('Data has been filtered')
 
+%% Segment Data
+
 
 %% Compute All Features
 % Returns featureTables struct
@@ -77,7 +79,7 @@ for task= taskList
         featureTables.Gait= arrayfun(@(pt)mean(cat(3,gi{pt,:}),3), ...
             (1:numPts)', 'UniformOutput', false); 
     else
-        [featureTables.(task{1}), fl, d_combo]= getFullFeatureSet(clean_data, fs, [f_high, f_low], minpkdist);
+        [featureTables.(task{1}), fl]= getFullFeatureSet(clean_data, fs, [f_high, f_low], minpkdist);
     end  
     toc
 end
