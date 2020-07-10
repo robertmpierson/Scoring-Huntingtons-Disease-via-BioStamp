@@ -5,7 +5,7 @@ dataDir = 'Data';
 taskList= {'Posture', 'Sitting', 'Gait'};
 numIntervals = 5;  % Number of Gait intervals
 
-sensorList= {'sacrum', 'Rthigh', 'Rforearm', 'Lthigh', 'Lforearm'};
+sensorList= {'Lforearm', 'Rforearm', 'sacrum', 'Lthigh', 'Rthigh'};
   
 fs= 62.5; % sample rate
 numPatients = 28;

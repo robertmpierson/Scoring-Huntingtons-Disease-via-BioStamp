@@ -11,12 +11,12 @@ Pts= (1:numPatients);
 % patients, indexed by i_test, i_train, and i_testHD and i_trainHD
 % respectively.
 
-
 % Obtain/Load Feature Table
 run('get_features.m')
 
 % Aggregate features into feature matrix
-features_all=[];   
+features_all=[];
+ftNames= [];
 % Array "features" will be size [nPatients x (nSensor Signals)(nFeatures)].
 % Row organization: [s1f1, s1f2... s1fn s2f1, s2f2, ...s2fn... snfn],
 % where f1s1 is feature 1 measured at sensor 1. 
@@ -24,17 +24,21 @@ features_all=[];
 % Select features for each task according to iFeats, concatenate into
 % "features" matrix
 for tname = taskList
-    fts= featureTables.(tname{1})(Pts);                                                     
+    fts = featureTables.(tname{1})(Pts);                                                     
     features_all= [features_all, cell2mat(cellfun(@(x)reshape(x,1,[]), fts,...
         'UniformOutput', false))];
+    ftNames = [ftNames, strcat(tname, reshape(featureTables.labels,1,[]))];
 end
 
-nFts=numel(featureTables.labels);
+nFts = numel(featureTables.labels);
+
 disp('Features aggregated')
 
 save([dataDir, '/feature_matrix.mat'], 'features_all')
-    
-HDPts= Pts(logical(labels.PtStatus));
+
+% Indices of HD patients & controls
+HDPts= Pts(logical(labels.PtStatus));           
+CtrPts =  Pts(~logical(labels.PtStatus));
 
 %% 2) BINARY CLASSIFICATION CV
 
@@ -54,11 +58,10 @@ for pt_test=1:numPatients
     pt_train= Pts(Pts~=pt_test); 
     labels_PtStatus = labels.PtStatus(pt_train);
     labels_PtStatus_test = labels.PtStatus(pt_test);
-    
-    trn_mn= mean(features_all(pt_train,:)); trn_std=std(features_all(pt_train,:));
-    features= normalize(features_all(pt_train,:));                % all training set features
-    features_test = (features_all(pt_test,:)-trn_mn)./trn_std;    % all test set features
-    
+     
+    % Get zscored training features and testing features
+    [features, trn_mn, trn_std] = zscore(features_all(pt_train,:)); % all training set features
+    features_test = (features_all(pt_test,:)-trn_mn)./trn_std;      % all test set features
     
     disp('Selecting Features...')
     [selected_fts, selected_test_fts, flabels]= selectFeats(features,features_test, ...
@@ -96,12 +99,14 @@ disp('Classification CV done')
 
 %% Compute and Save Classification Results
 
+
 % Calculate average CV test and train accuracy
+% each row is arranged as [trn_acc, tst_acc, AUC] for each patient (so row length= 3 x nPts)
 cv_mat= cell2mat(cv_model_performance);
 
 % Gather list of missed data points
-[mod, m_pt]=find(cv_mat(:,2:3:end)==0);     
-missed= arrayfun(@(x)num2str(m_pt(m==x)'),(1:length(modelList)),'UniformOutput',false)';
+[mod, m_pt]=find(cv_mat(:,2:3:end) == 0);   % get test_acc for each patient & each classifier  
+missed= arrayfun(@(x)num2str(m_pt(mod == x )'),(1:length(modelList)),'UniformOutput',false)';
 
 % Get true/false positives, true/false negatives for each model
 TP= (cv_mat(:,2:3:end)~=0)*(labels.PtStatus==1); 
@@ -126,8 +131,7 @@ save([dataDir, '/Results/Binary_Classification.mat'], 'cv_feats',...
 
 disp('Binary Classification Done')
 
-
-%% 2) REGRESSION MODEL CV
+%% 3) REGRESSION MODEL CV
 
 
 % Define subscore categories in "labels" table to predict
@@ -139,7 +143,7 @@ subscores= {'Gait', 'TandemGait', ...
     'Bradykinesia_body_', ...
     'combined_subscores'};
 
-labels.combined_subscores=sum(labels{:,[11,12,15,20,21,22,23]},2); 
+labels.combined_subscores = sum(labels{:,[11,12,15,20,21,22,23]},2); 
 
 % iterate through all subscores
 for i_scr = (1:length(subscores))
@@ -150,7 +154,8 @@ for i_scr = (1:length(subscores))
     cv_reg_feats= cell(1, numPatients);
     cv_reg_model_performance= cell(1,numPatients); 
     
-    % Set score range
+    % Set score range (range is the total possible score a patient could
+    % get in the categories counted). 
     if strcmp(type, 'MaximalChorea_face_Mouth_Trunk_And4Extremities_'), rng = [0,28];
     elseif strcmp(type, 'MaximalDystonia_trunkAnd4Extremities_'), rng = [0,20];
     elseif strcmp(type, 'combined_subscores'), rng = [0,80];
@@ -244,13 +249,14 @@ totalScores(FN)=0;
 
 final_error= mean(abs(totalScores));
 final_error_pcnt= final_error/rng(2)*100;
+percentile= [prctile(abs(totalScores),0), prctile(abs(totalScores),50), prctile(abs(totalScores),90)]/rng(2)*100
+
 
 fprintf(['Using the %s classifier and %s regression model to predict %s.\n',...
     'Mean error magnitude: %0.2f, normalized mean error: %0.2f%%\n'],...
 bin_results_table.Properties.RowNames{i_binmod}, ...
 reg_results_table.Properties.RowNames{i_regmod}, type, ...
 final_error, final_error_pcnt)
-
 
 
 
