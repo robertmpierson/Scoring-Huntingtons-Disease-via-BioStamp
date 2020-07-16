@@ -1,7 +1,7 @@
 % HD Pipeline Settings
 
 % Data Loading
-dataDir = 'Data';
+dataDir = 'Data_V1';
 taskList= {'Posture', 'Sitting', 'Gait'};
 numIntervals = 5;  % Number of Gait intervals
 
