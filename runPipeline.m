@@ -1,7 +1,7 @@
 % runPipeline
 clear all
 
-run('settings.m')
+run('settingsB.m')
 addpath('helperFcns')
  
 Pts= (1:numPatients);

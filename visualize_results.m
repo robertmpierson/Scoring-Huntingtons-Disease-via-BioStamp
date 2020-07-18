@@ -3,7 +3,7 @@
 dd=dir('Data/Results/*.mat');
 load('rawData/labels.mat')
 
-run('settings.m')
+run('settingsB.m')
 addpath(genpath('helperFcns'))
  
 Pts= (1:numPatients);
@@ -24,10 +24,10 @@ histogram(labels.combined_subscores)
 % Display Raw Data, select task and sensor
 task= taskList{3}; sensor= 'S3'; 
 
-figure(1); clf; 
+figure(2); clf; 
 plotRawData(dataTables, 'clean', task, sensor, HDPts(1:end/2))
 
-figure(2); clf;
+figure(3); clf;
 plotRawData(dataTables, 'clean', task, sensor, CtrlPts(1:end/2))
 
 

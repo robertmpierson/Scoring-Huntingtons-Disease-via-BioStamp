@@ -1,16 +1,16 @@
 % Get Features
 
-run('settings.m')
+run('settingsB.m')
 addpath('helperFcns')
 
 % Load feature data if it already exists
-if exist(fullfile(dataDir, featFilename),'file') > 0
-    fprintf('loading %s, delete and rerun to recompute\n', featFilename)
-    load(fullfile(dataDir, featFilename)); 
-    load(fullfile('rawData','labels.mat'));
-    disp('features loaded');
-    return;
-end
+% if exist(fullfile(dataDir, featFilename),'file') > 0
+%     fprintf('loading %s, delete and rerun to recompute\n', featFilename)
+%     load(fullfile(dataDir, featFilename)); 
+%     load(fullfile('rawData','labels.mat'));
+%     disp('features loaded');
+%     return;
+% end
 
 %%  Load data 
 % load from all patients, save as .mat files in dataDir. If files
@@ -54,7 +54,19 @@ save(fullfile(dataDir,'dataTables.mat'), 'dataTables');
 disp('Data has been filtered')
 
 %% Segment Data
+disp('segmenting gait data')
+%for task= taskList
+    task = taskList(3);
+    dclean= dataTables.([task{1},'_clean']);
+    [segmented_data] = segmentData(table2array(dclean), wind, overlap, fs);
 
+    % Add segmented data to dataTables
+    dataTables.([task{1},'_segmented'])= cell2table(segmented_data, ...
+        'VariableNames', raw_data.Properties.VariableNames);  
+%end
+
+save(fullfile(dataDir,'dataTables.mat'), 'dataTables'); 
+disp('Data has been segmented')
 
 %% Compute All Features
 % Returns featureTables struct
