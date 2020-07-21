@@ -76,14 +76,15 @@ featureTables=struct();
 for task= taskList
     tic
     clean_data= dataTables.([task{1},'_clean']);
-    numPts=height(clean_data);
+    numPts=height(clean_data);           
     
     % Get features for each Gait interval
     if strcmp(task{1}, 'Gait')
+        clean_data = dataTables.([task{1},'_segmented']);
         names= clean_data.Properties.VariableNames;
         for int = 1:numIntervals
             int_data= clean_data(:,contains(names,sprintf('Interval%d',int)));
-            [featureTables.Gait_Intervals(:,int)]= getFullFeatureSet(int_data, fs, [f_high, f_low], minpkdist);  
+            [featureTables.Gait_Intervals(:,int)]= getFullFeatureSet2(int_data, fs, [f_high, f_low], minpkdist);  
         end
 
         % Aggregate Gait features across intervals
