@@ -58,11 +58,15 @@ disp('segmenting gait data')
 %for task= taskList
     task = taskList(3);
     dclean= dataTables.([task{1},'_clean']);
-    [segmented_data] = segmentData(table2array(dclean), wind, overlap, fs);
+    [seg_mat,segmented_data, patientIDMap] = segmentData(table2array(dclean), wind, overlap, fs, numIntervals);
 
+    % Add segmented data to dataTables
+    dataTables.([task{1},'_segmat'])= cell2table(seg_mat', ...
+        'VariableNames', raw_data.Properties.VariableNames);  
     % Add segmented data to dataTables
     dataTables.([task{1},'_segmented'])= cell2table(segmented_data, ...
         'VariableNames', raw_data.Properties.VariableNames);  
+    
 %end
 
 save(fullfile(dataDir,'dataTables.mat'), 'dataTables'); 
@@ -81,14 +85,18 @@ for task= taskList
     % Get features for each Gait interval
     if strcmp(task{1}, 'Gait')
         clean_data = dataTables.([task{1},'_segmented']);
+        %clean_data = dataTables.([task{1},'_clean']);
         names= clean_data.Properties.VariableNames;
         for int = 1:numIntervals
             int_data= clean_data(:,contains(names,sprintf('Interval%d',int)));
-            [featureTables.Gait_Intervals(:,int)]= getFullFeatureSet2(int_data, fs, [f_high, f_low], minpkdist);  
+            [ftG, ~]= getFullFeatureSet2(int_data, fs, [f_high, f_low], minpkdist ,patientIDMap{int});  
+            %[ftG, ~]= getFullFeatureSet(int_data, fs, [f_high, f_low], minpkdist);  
+            featureTables.Gait_Intervals(:,int) = ftG;
         end
 
         % Aggregate Gait features across intervals
         gi=featureTables.Gait_Intervals;
+        %ERROR HERE: Dimensions of arrays being concatenated are not consistent.
         featureTables.Gait= arrayfun(@(pt)mean(cat(3,gi{pt,:}),3), ...
             (1:numPts)', 'UniformOutput', false); 
     else

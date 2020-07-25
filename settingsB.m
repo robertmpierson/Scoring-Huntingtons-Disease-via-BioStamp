@@ -29,5 +29,5 @@ time_removed_walking = round(0*fs); % 2 seconds % time already removed while rem
 time_removed_postureANDsitting = round(5*fs); % 5 seconds
 
 %for segmenting data
-wind = 3*fs; %window size
+wind = 2.86*fs; %window size
 overlap = wind/2;
