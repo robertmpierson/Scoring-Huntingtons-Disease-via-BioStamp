@@ -37,6 +37,15 @@ for every patient: save numwins,
     103x120 where i can map 1:4 to patient 1
 
 -----
-7/22
+7/28
+only use gait data:
+turn every window segment into a new patient
+features_all = 582x104
+
+if repeating posture/sitting then 582*312
+    
+see repelm: can do the same for their scores
+    
+    
 
 

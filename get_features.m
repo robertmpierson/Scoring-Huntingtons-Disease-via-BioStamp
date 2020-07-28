@@ -58,7 +58,7 @@ disp('segmenting gait data')
 %for task= taskList
     task = taskList(3);
     dclean= dataTables.([task{1},'_clean']);
-    [seg_mat,segmented_data, patientIDMap] = segmentData(table2array(dclean), wind, overlap, fs, numIntervals);
+    [seg_mat,segmented_data, patientIDMap, ptNumSeg] = segmentData(table2array(dclean), wind, overlap, fs, numIntervals);
 
     % Add segmented data to dataTables
     dataTables.([task{1},'_segmat'])= cell2table(seg_mat', ...
