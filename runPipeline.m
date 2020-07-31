@@ -132,8 +132,9 @@ save([dataDir, '/Results/Binary_Classification.mat'], 'cv_feats',...
 disp('Binary Classification Done')
 
 %% 3) REGRESSION MODEL CV
+features_all =  [ftIntv];
 
-
+load('/Users/inbartivon/Downloads/HD Litt Lab/Data/labels.mat')
 % Define subscore categories in "labels" table to predict
 subscores= {'Gait', 'TandemGait', ...
     'Rigidity_RIGHTArm', 'Rigidity_LEFTArm', ...
@@ -143,11 +144,18 @@ subscores= {'Gait', 'TandemGait', ...
     'Bradykinesia_body_', ...
     'combined_subscores'};
 
-labels.combined_subscores = sum(labels{:,[11,12,15,20,21,22,23]},2); 
+labels.combined_subscores = sum(labels{:,[11,12,20,21,22,23]},2); 
 
+
+labels = repelem(labels, n,1);
+Pts = 1:size(labels,1);
+HDPts= Pts(logical(labels.PtStatus));           
+CtrPts =  Pts(~logical(labels.PtStatus));
+numPatients = size(labels,1);
 % iterate through all subscores
-for i_scr = (1:length(subscores))
-    
+% for i_scr = (1:length(subscores))
+for i_scr = 10 %combined scores only
+
     type= subscores{i_scr};     % subscore type
     scrs=labels.(type);         % True subscores
     
@@ -176,7 +184,7 @@ for pt_test=1:numPatients
     features= normalize(features_all(pt_train,:));                % all training set features
     features_test = (features_all(pt_test,:)-trn_mn)./trn_std;    % all test set features
 
-    disp('Selecting Features...')
+    disp('Select' ing Features...')
     [selected_fts, selected_test_fts, flabels]= selectFeats(features, features_test, ...
         reg_labels, featureTables.labels, taskList, type, false);
     cv_feats{pt_test}=flabels; 

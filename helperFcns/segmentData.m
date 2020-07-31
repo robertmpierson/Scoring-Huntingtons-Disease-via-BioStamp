@@ -7,7 +7,7 @@ function [seg_data_mat,segmented_data, patientIDMap, ptNumSeg] = segmentData(dat
     ptNumSeg = cell(numIntervals,size(data,1));
     
     for n = 1:numIntervals
-        for j = (n-1)*24+1:n*24
+        for j = (n-1)*intv+1:n*intv
             for i = 1:size(data,1)
                 l = length(data{i,j});
                 numW = floor(NumWins(l,fs,wind/fs,overlap/fs));

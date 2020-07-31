@@ -84,21 +84,23 @@ for task= taskList
     
     % Get features for each Gait interval
     if strcmp(task{1}, 'Gait')
-        clean_data = dataTables.([task{1},'_segmented']);
+        clean_data = dataTables.([task{1},'_segmat']);
         %clean_data = dataTables.([task{1},'_clean']);
         names= clean_data.Properties.VariableNames;
+        ftG = cell(1,numIntervals);
         for int = 1:numIntervals
             int_data= clean_data(:,contains(names,sprintf('Interval%d',int)));
-            [ftG, ~]= getFullFeatureSet2(int_data, fs, [f_high, f_low], minpkdist ,patientIDMap{int});  
+            [ftG{int}, ~]= getFullFeatureSet2(int_data, fs, [f_high, f_low], minpkdist ,patientIDMap{int});  
             %[ftG, ~]= getFullFeatureSet(int_data, fs, [f_high, f_low], minpkdist);  
-            featureTables.Gait_Intervals(:,int) = ftG;
+            %featureTables.Gait_Intervals(:,int) = ftG;
         end
-
+        [ptList, ftIntv, n] = ptIDList(patientIDMap, ftG);
         % Aggregate Gait features across intervals
-        gi=featureTables.Gait_Intervals;
-        %ERROR HERE: Dimensions of arrays being concatenated are not consistent.
-        featureTables.Gait= arrayfun(@(pt)mean(cat(3,gi{pt,:}),3), ...
-            (1:numPts)', 'UniformOutput', false); 
+%         gi=featureTables.Gait_Intervals;
+%         %ERROR HERE: Dimensions of arrays being concatenated are not consistent.
+%         featureTables.Gait= arrayfun(@(pt)mean(cat(3,gi{pt,:}),3), ...
+%             (1:numPts)', 'UniformOutput', false); 
+        featureTables.Gait = ftIntv;
     else
         [featureTables.(task{1}), fl]= getFullFeatureSet(clean_data, fs, [f_high, f_low], minpkdist);
     end  

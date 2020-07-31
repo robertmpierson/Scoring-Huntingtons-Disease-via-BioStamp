@@ -46,6 +46,11 @@ if repeating posture/sitting then 582*312
     
 see repelm: can do the same for their scores
     
+7/30
     
-
+labels.combined_subscores = sum(labels{:,[11,12,20,21,22,23]},2);
+newlabels = repelem(labels.combined_subscores, n);
+features_all =  [ftIntv, newlabels];
+    
+    
 
