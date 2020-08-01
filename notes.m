@@ -52,5 +52,43 @@ labels.combined_subscores = sum(labels{:,[11,12,20,21,22,23]},2);
 newlabels = repelem(labels.combined_subscores, n);
 features_all =  [ftIntv, newlabels];
     
+7/31
+rather than end up with 582, aggregate using patient map to get only one score per patient
+print variance along one patient
+
+posture and sitting data to expanded gait
+
+expand sitting 
+
+get data final folder
+
+bring back lasso
+
+--
+yfit = trainedModel.predictFcn(features_all);
+nl = load('/Users/inbartivon/Downloads/HD Litt Lab/Data/labels.mat');
+nl = nl.labels;
+predt = arrayfun(@(x)mean(yfit(ptList==x)), 1:28);
+predt(nl.PtStatus == 1);
+nlG = nl.TandemGait(nl.PtStatus == 1) + nl.Gait(nl.PtStatus == 1)
+(THE SAME) about 88.8% acc
+
+also did for no CV, but 20% hold out
+KNN model! about 86% acc
+
+tried combined subscores (not gait and tandem gait) - SAME 84.8%
+
+%try taking out entire patient from training
+%make bins if classifier
+
+changed testingclass to have a hold out class of patients, and train only on training patients that have HD
+gait features 91% !!!
+checking predictions...SAME
     
+checking with combined scores 88.7%
+predictions : 
+
+
+
+
 

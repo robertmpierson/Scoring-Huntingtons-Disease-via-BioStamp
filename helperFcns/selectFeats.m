@@ -20,7 +20,7 @@ function [selected_fts, selected_test_fts, fLabels] = selectFeats(allTrainFeats,
 %     end
     disp('fscmrmr')
     [idx,scores] = fscmrmr(allTrainFeats,train_labels);
-    i_sft = idx(1:40)';
+    i_sft = idx(1:25)';
     
     selected_fts=allTrainFeats(:, i_sft);
     selected_test_fts= allTestFeats(:,i_sft); 

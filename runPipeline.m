@@ -132,9 +132,10 @@ save([dataDir, '/Results/Binary_Classification.mat'], 'cv_feats',...
 disp('Binary Classification Done')
 
 %% 3) REGRESSION MODEL CV
-features_all =  [ftIntv];
+% load('/Users/inbartivon/Downloads/HD Litt Lab/Data/fullFeatures.mat')
+% load('/Users/inbartivon/Downloads/HD Litt Lab/Data/labels.mat');
+features_all =  featureTables.Gait;
 
-load('/Users/inbartivon/Downloads/HD Litt Lab/Data/labels.mat')
 % Define subscore categories in "labels" table to predict
 subscores= {'Gait', 'TandemGait', ...
     'Rigidity_RIGHTArm', 'Rigidity_LEFTArm', ...
@@ -184,7 +185,7 @@ for pt_test=1:numPatients
     features= normalize(features_all(pt_train,:));                % all training set features
     features_test = (features_all(pt_test,:)-trn_mn)./trn_std;    % all test set features
 
-    disp('Select' ing Features...')
+    disp('Selecting Features...')
     [selected_fts, selected_test_fts, flabels]= selectFeats(features, features_test, ...
         reg_labels, featureTables.labels, taskList, type, false);
     cv_feats{pt_test}=flabels; 

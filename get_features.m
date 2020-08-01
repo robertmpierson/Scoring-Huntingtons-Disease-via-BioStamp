@@ -68,7 +68,9 @@ disp('segmenting gait data')
         'VariableNames', raw_data.Properties.VariableNames);  
     
 %end
-
+    dataTables.ptIDMap = patientIDMap;
+    dataTables.ptNumSeg = ptNumSeg;
+    
 save(fullfile(dataDir,'dataTables.mat'), 'dataTables'); 
 disp('Data has been segmented')
 
