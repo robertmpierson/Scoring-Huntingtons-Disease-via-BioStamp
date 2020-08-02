@@ -89,6 +89,9 @@ checking with combined scores 88.7%
 predictions : 
 
 
+8/1
+regression combined scores with bins
+RMSE 0.89
 
 
 
