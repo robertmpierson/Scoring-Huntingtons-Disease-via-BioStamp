@@ -1,6 +1,6 @@
 %% Tabulate Results
 
-dd=dir('Data/Results/*.mat');
+dd=dir('DATA1/Results/*.mat');
 load('rawData/labels.mat')
 
 run('settingsB.m')
@@ -49,7 +49,7 @@ comboscore=0;
 
 i_mat=1; 
 for name= {dd.name}
-    load(sprintf('Data/Results/%s', name{1}))
+    load(sprintf('DATA1/Results/%s', name{1}))
     
     if any(strcmp(type, {'binary', 'Rigidity_RIGHTArm', 'FingerTaps_RIGHT'}))
         continue
@@ -150,26 +150,27 @@ prctile(abs(reg_results_table.error(i_regmod,HDPts)/.8), [25 50 75],2)
 load('Data/Results/Binary_Classification.mat')
 load('Data/Results/combined_subscores.mat')
 
-i_binmod=1;
-i_regmod=7;
+i_binmod= 1; % index of binary classifier model to use
+i_regmod= 7; % index of regression model to use
 
-missed= cellfun(@str2num, strsplit(bin_results_table.missed{i_binmod},' '))
-FN= ismember(HDPts, missed) 
+missed= cellfun(@str2num, strsplit(bin_results_table.missed{i_binmod},' '));
+FN= missed(ismember(missed, HDPts));        % index of false negatives
+FP= missed(~ismember(missed, HDPts));       % index of false positives
 
-fullError=zeros(28,1);
-fullError([HDPts, missed])= reg_results_table.error(i_regmod,unique([HDPts, missed]));
-fullError(FN)=0; 
+totalScores=zeros(28,1);
+totalScores([HDPts, FP])= reg_results_table.error(i_regmod,unique([HDPts, FP]));
+totalScores(FN)=0; 
 
-final_error= mean(abs(fullError))
-final_error_pcnt= mean(abs(fullError))./rng(2)
+final_error= mean(abs(totalScores));
+final_error_pcnt= final_error/rng(2)*100;
+percentile= [prctile(abs(totalScores),0), prctile(abs(totalScores),50), prctile(abs(totalScores),90)]/rng(2)*100
 
-prctile(abs(reg_results_table.error(i_regmod,HDPts)/.8), [25 50 75],2)
 
 fprintf(['Using the %s classifier and %s regression model to predict %s.\n',...
     'Mean error magnitude: %0.2f, normalized mean error: %0.2f%%\n'],...
 bin_results_table.Properties.RowNames{i_binmod}, ...
 reg_results_table.Properties.RowNames{i_regmod}, type, ...
-final_error, final_error_pcnt*100)
+final_error, final_error_pcnt)
 
 %% Full Model combined scores
 
@@ -186,10 +187,11 @@ for d= 1:length(fullError)
 %     plot([d,d], [srtscr(d),  comboError(srtind(d))'+srtscr(d)], 'black', ...
 %         'linewidth', 1, 'HandleVisibility','off')
 end
-
+hold on;
 plot([1:length(fullError)], srtscr, '.', 'markersize', 20 )
+
 plot([1:length(fullError)], fullError(srtind)'+srtscr, '.', 'markersize', 20 )
-%plot([1:length(fullError)], comboError(srtind)'+srtscr, '.', 'markersize', 20)
+plot([1:length(fullError)], comboError(srtind)'+srtscr, '.', 'markersize', 20)
 
 legend({'True score', 'Predicted Score'}, 'location', 'best')
 xlabel('Patients')
