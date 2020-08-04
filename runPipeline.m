@@ -133,6 +133,7 @@ disp('Binary Classification Done')
 
 %% 3) REGRESSION MODEL CV
 %setup
+load(fullfile(dataDir,'/dataTables.mat'));
 features_all2=[];
 ftNames = [];
 FF = cell(3,1);
@@ -184,7 +185,7 @@ subscores= {'Gait', 'TandemGait', ...
 labels = load('/Users/inbartivon/Downloads/HD Litt Lab/Data/labels.mat');
 labels = labels.labels;
 labels.combined_subscores = sum(labels{:,[11,12,20,21,22,23]},2); 
-load(fullfile(dataDir,'/dataTables.mat'));
+
 ol = labels; %original labels
 labels = repelem(labels, dataTables.([taskList{j},'_n']),1);
 Pts2 = dataTables.([taskList{j},'_ptList']);
