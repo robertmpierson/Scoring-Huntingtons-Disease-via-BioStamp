@@ -30,6 +30,36 @@ plotRawData(dataTables, 'clean', task, sensor, HDPts(1:end/2))
 figure(2); clf;
 plotRawData(dataTables, 'clean', task, sensor, CtrlPts(1:end/2))
 
+%% Figure for paper, control vs. HD patient
+
+rms_func = @(dd) sqrt(sum(cell2mat(dd)'.^2)); 
+figure(30); clf; 
+subplot(3,1,1); hold on
+dd= dataTables.Posture_clean{1,1:3};
+plot(rms_func(dd))
+dd= dataTables.Posture_clean{6,1:3};
+plot(rms_func(dd))
+xticks('')
+title('Posture', 'fontsize', 13)
+
+subplot(312); hold on
+dd= dataTables.Sitting_clean{1,1:3};
+plot(rms_func(dd))
+dd= dataTables.Sitting_clean{6,1:3};
+plot(rms_func(dd))
+title('Sitting', 'fontsize', 13)
+xticks('')
+
+subplot(313); hold on
+dd= dataTables.Gait_clean{1,1:3};
+plot([1:length(dd{1})]/fs, rms_func(dd))
+dd= dataTables.Gait_clean{6,1:3};
+plot([1:length(dd{1})]/fs, rms_func(dd))
+title('Gait', 'fontsize', 13)
+xlabel('Time', 'fontsize', 13)
+
+legend('HD Symptomatic','Control')
+
 
 %% Plot Error Distribution for all models
 
