@@ -93,5 +93,16 @@ predictions :
 regression combined scores with bins
 RMSE 0.89
 
+expand sitting features
 
 
+
+8/3
+used cubic svm
+switch to regression bc not all scores in training classifier
+  see testing class added code
+  try only one hold out - make loop hold out one patient at a time, train, and average predictions
+save results for each patient left out
+leave one out CV
+change window size for sitting
+try posture gait and expanded sitting

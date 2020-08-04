@@ -4,15 +4,15 @@
 % patients in the hold out set: 2, 5, 7, 14
 %used only expanded gait features
 %labels= ['Classifier for gait subscores', 'Classifier for combined sub_scores', 'Classifier for combined sub_scores buckets of 10', 'Linear Regression for combined scores' ];
-labels = categorical({'Classifier for gait subscores', 'Classifier for combined subscores', 'Classifier for combined subscores buckets of 10', 'Linear Regression for combined scores', 'Linear Regression for combined score buckets'});
-CVacc =[.91, .887, .923, NaN, NaN]; %classifer 5 fold CV accuracy
-TestAcc = [10 4;8 2 ;8 2; 0 1; 8 2]; %[x y] x is number of correct training predictions out of 10, y is number of correct testing predictions out of 4
+labels = categorical({'Classifier for gait subscores', 'Classifier for combined subscores', 'Classifier for combined subscores buckets of 10', 'Linear Regression for combined scores', 'Linear Regression for combined score buckets', 'Classifier for combined scores using only Sitting expanded features', 'Classifer using expanded sitting and gait features for combined score'});
+CVacc =[.91, .887, .923, NaN, NaN, .833, .836]; %classifer 5 fold CV accuracy
+TestAcc = [10 4;8 2 ;8 2; 0 1; 8 2; 8 2; 8 2]; %[x y] x is number of correct training predictions out of 10, y is number of correct testing predictions out of 4
 
 figure(1)
 bar(labels, CVacc);
 title('5 fold CV Classifier accuracy of training patients')
 ylabel('accuracy')
-ylim([0.85,1])
+ylim([0.80,1])
 grid on;
 
 figure(2)

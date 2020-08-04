@@ -4,13 +4,13 @@ run('settingsB.m')
 addpath('helperFcns')
 
 % Load feature data if it already exists
-% if exist(fullfile(dataDir, featFilename),'file') > 0
-%     fprintf('loading %s, delete and rerun to recompute\n', featFilename)
-%     load(fullfile(dataDir, featFilename)); 
-%     load(fullfile('rawData','labels.mat'));
-%     disp('features loaded');
-%     return;
-% end
+if exist(fullfile(dataDir, featFilename),'file') > 0
+    fprintf('loading %s, delete and rerun to recompute\n', featFilename)
+    load(fullfile(dataDir, featFilename)); 
+    load(fullfile('rawData','labels.mat'));
+    disp('features loaded');
+    return;
+end
 
 %%  Load data 
 % load from all patients, save as .mat files in dataDir. If files
@@ -56,20 +56,29 @@ disp('Data has been filtered')
 %% Segment Data
 disp('segmenting gait data')
 %for task= taskList
-    task = taskList(3);
+for i = 2:3
+    task = taskList(i);
+    if ~strcmp(task{1}, 'Gait')
+        numIntervals = 1;
+    else
+        numIntervals = 5;
+    end
+        
     dclean= dataTables.([task{1},'_clean']);
     [seg_mat,segmented_data, patientIDMap, ptNumSeg] = segmentData(table2array(dclean), wind, overlap, fs, numIntervals);
-
+    
+    
     % Add segmented data to dataTables
     dataTables.([task{1},'_segmat'])= cell2table(seg_mat', ...
-        'VariableNames', raw_data.Properties.VariableNames);  
+        'VariableNames', dclean.Properties.VariableNames);  
     % Add segmented data to dataTables
     dataTables.([task{1},'_segmented'])= cell2table(segmented_data, ...
-        'VariableNames', raw_data.Properties.VariableNames);  
+        'VariableNames', dclean.Properties.VariableNames); 
+    dataTables.([task{1},'_ptIDMap']) = patientIDMap;
+    dataTables.([task{1},'_ptNumSeg']) = ptNumSeg;
     
-%end
-    dataTables.ptIDMap = patientIDMap;
-    dataTables.ptNumSeg = ptNumSeg;
+end
+    
     
 save(fullfile(dataDir,'dataTables.mat'), 'dataTables'); 
 disp('Data has been segmented')
@@ -85,24 +94,48 @@ for task= taskList
     numPts=height(clean_data);           
     
     % Get features for each Gait interval
-    if strcmp(task{1}, 'Gait')
+    % TODO this code can be cleaned up!
+    if strcmp(task{1}, 'Gait') 
         clean_data = dataTables.([task{1},'_segmat']);
-        %clean_data = dataTables.([task{1},'_clean']);
+        clean_data1 = dataTables.([task{1},'_clean']);
         names= clean_data.Properties.VariableNames;
         ftG = cell(1,numIntervals);
         for int = 1:numIntervals
             int_data= clean_data(:,contains(names,sprintf('Interval%d',int)));
-            [ftG{int}, ~]= getFullFeatureSet2(int_data, fs, [f_high, f_low], minpkdist ,patientIDMap{int});  
-            %[ftG, ~]= getFullFeatureSet(int_data, fs, [f_high, f_low], minpkdist);  
-            %featureTables.Gait_Intervals(:,int) = ftG;
+            [ftG{int}, ~]= getFullFeatureSet2(int_data, fs, [f_high, f_low], minpkdist ,dataTables.([task{1},'_ptIDMap']){int});  
+            int_data1= clean_data1(:,contains(names,sprintf('Interval%d',int)));
+            [ftG1, ~]= getFullFeatureSet(int_data1, fs, [f_high, f_low], minpkdist);  
+            featureTables.Gait_Intervals(:,int) = ftG1;
         end
-        [ptList, ftIntv, n] = ptIDList(patientIDMap, ftG);
+        patientIDMap = dataTables.([task{1},'_ptIDMap']);
+        ptNumSeg = dataTables.([task{1},'_ptNumSeg']);
+        [dataTables.([task{1},'_ptList']), ftIntv, dataTables.([task{1},'_n'])] = ptIDList(patientIDMap, ftG);
         % Aggregate Gait features across intervals
-%         gi=featureTables.Gait_Intervals;
-%         %ERROR HERE: Dimensions of arrays being concatenated are not consistent.
-%         featureTables.Gait= arrayfun(@(pt)mean(cat(3,gi{pt,:}),3), ...
-%             (1:numPts)', 'UniformOutput', false); 
-        featureTables.Gait = ftIntv;
+        gi=featureTables.Gait_Intervals;
+        %ERROR HERE: Dimensions of arrays being concatenated are not consistent.
+        featureTables.(task{1})= arrayfun(@(pt)mean(cat(3,gi{pt,:}),3), ...
+            (1:numPts)', 'UniformOutput', false); 
+        featureTables.([task{1},'_2']) = ftIntv;
+        
+%     elseif strcmp(task{1}, 'Sitting') 
+%         clean_data = dataTables.([task{1},'_segmat']);
+%         %clean_data = dataTables.([task{1},'_clean']);
+%         names= clean_data.Properties.VariableNames;
+%         ftG = cell(1,1);
+%         
+%         int_data= clean_data;
+%         [ftG{1}, ~]= getFullFeatureSet2(int_data, fs, [f_high, f_low], minpkdist ,patientIDMap{int});  
+%         %[ftG, ~]= getFullFeatureSet(int_data, fs, [f_high, f_low], minpkdist);  
+%         %featureTables.Gait_Intervals(:,int) = ftG;
+%         patientIDMap = dataTables.([task{1},'_ptIDMap']);
+%         ptNumSeg = dataTables.([task{1},'_ptNumSeg']);  
+%         [ptList_sit, ftIntv, n_sit] = ptIDList(patientIDMap, ftG);
+%         % Aggregate Gait features across intervals
+% %         gi=featureTables.Gait_Intervals;
+% %         %ERROR HERE: Dimensions of arrays being concatenated are not consistent.
+% %         featureTables.Gait= arrayfun(@(pt)mean(cat(3,gi{pt,:}),3), ...
+% %             (1:numPts)', 'UniformOutput', false); 
+%         featureTables.Sitting = ftIntv;
     else
         [featureTables.(task{1}), fl]= getFullFeatureSet(clean_data, fs, [f_high, f_low], minpkdist);
     end  

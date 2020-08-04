@@ -41,7 +41,8 @@ function [featCell, featureLabels] = getFullFeatureSet2(clean_data, fs, frange, 
         cell2mat(cellfun(@std, {ifs}, 'UniformOutput', false)); ...
         getAmplitudeFeats(ifs, minpkdist);...
         getBandpowerFeats(ifs,fs, frange)'];  
-        featCell{pt} = [featCell{pt};reshape(ftC, 1, [])];
+%         featCell{pt} = [featCell{pt};reshape(ftC, 1, [])];
+        featCell{pt} = [featCell{pt};ftC]; %13*n x 8
     end
     
     % Assemble feature labels

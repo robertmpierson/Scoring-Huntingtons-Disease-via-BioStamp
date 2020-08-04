@@ -10,14 +10,14 @@ end
 pts = 1:max(patientIDMap{1});
 
 ptList = repelem(pts, n);
-ftIntv = zeros(length(ptList), length(ftG{1,1}{1}));
+ftIntv = cell(length(ptList), 1);
 for i = 1: length(ftG)
     f = ftG{i};
     p = patientIDMap{i};
     for j = 1: length(f)
         iD = p(j);
-        idx = find((all(ftIntv ==0,2))' & ptList == iD ==1,1);
-        ftIntv(idx,:) = cell2mat(f(j));
+        idx = find(cellfun(@isempty,ftIntv)' & ptList == iD ==1,1);
+        ftIntv(idx,:) = f(j);
         
 
     end
