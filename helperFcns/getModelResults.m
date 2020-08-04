@@ -22,7 +22,7 @@ else
         m_rng(1)), m_rng(2));
     trn_out = mean(abs(yfit_trn-reg_labels));
     tst_out = mean(abs(yfit_tst-reg_labels_test));
-    preds=yfit_tst;  
+    preds=mean(yfit_tst);  
     xtra= [corr(yfit_trn, reg_labels), corr(yfit_tst, reg_labels_test)];
     results={model_name, ['Train_ME: ',num2str(trn_out)], ['Tst_ME: ',num2str(tst_out)], ['trnCorr, tstCorr: ',num2str(xtra)]};
     

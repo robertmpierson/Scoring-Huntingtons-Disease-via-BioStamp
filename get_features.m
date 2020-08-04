@@ -144,6 +144,6 @@ end
 
 % Create array of feature labels to match feature structure
 featureTables.labels=vertcat(fl{:});
-
+save(fullfile(dataDir,'dataTables.mat'), 'dataTables'); 
 save(fullfile(dataDir,featFilename), 'featureTables'); 
 disp('features computed')

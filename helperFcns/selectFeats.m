@@ -1,4 +1,4 @@
-function [selected_fts, selected_test_fts, fLabels] = selectFeats(allTrainFeats, allTestFeats,...
+ function [selected_fts, selected_test_fts, fLabels] = selectFeats(allTrainFeats, allTestFeats,...
     train_labels, labelset, taskList, type, isbinary)
 
     % Binary Classification
@@ -12,11 +12,24 @@ function [selected_fts, selected_test_fts, fLabels] = selectFeats(allTrainFeats,
             i_sft=find(B_gait(:,ilambda)); 
         end
     else  % Regression
-%         disp('normal LASSO')
-%         [B_gait, fitInfo] = lassoglm(allTrainFeats,train_labels,'normal','CV',5);
-        disp('fscmrmr')
-        [idx,scores] = fscmrmr(allTrainFeats,train_labels);
-        i_sft = idx(cumsum(scores(idx)) < 0.85)';
+        disp('normal LASSO')
+        [B_gait, fitInfo] = lassoglm(allTrainFeats,train_labels,'normal','CV',5);
+% Find coeffs for best CV fit
+        i_sft = find(B_gait(:, fitInfo.IndexMinDeviance));   % index of selected features
+        if isempty(i_sft)                         % select new lambda if feature set empty
+            ilambda=find(sum(B_gait~=0) > 0, 1, 'last'); 
+            i_sft=find(B_gait(:,ilambda)); 
+        end
+        
+%         disp('fscmrmr')
+%         [idx,scores] = fscmrmr(allTrainFeats,train_labels);
+%         cs = cumsum(scores(idx));
+%         i_sft = idx(cs < 0.85)';
+%         if isempty(i_sft)
+%             i_sft = idx(:);
+%         end
+            
+        
 
 
     end

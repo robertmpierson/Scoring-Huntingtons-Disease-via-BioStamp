@@ -184,7 +184,7 @@ subscores= {'Gait', 'TandemGait', ...
 labels = load('/Users/inbartivon/Downloads/HD Litt Lab/Data/labels.mat');
 labels = labels.labels;
 labels.combined_subscores = sum(labels{:,[11,12,20,21,22,23]},2); 
-
+load(fullfile(dataDir,'/dataTables.mat'));
 ol = labels; %original labels
 labels = repelem(labels, dataTables.([taskList{j},'_n']),1);
 Pts2 = dataTables.([taskList{j},'_ptList']);
@@ -211,17 +211,17 @@ for i_scr = (1:length(subscores))
 
     % Perform leave one out CV to predict subscore
     % train only on HD patients
-    %pick one of the HD patients to leave out
-    for pt_t=HDPts 
+    for pt_t=1:numPatients
         
         fprintf('pt %d\n', pt_t)
 
         % Form Training/Test sets
         idx = ~ismember(Pts2, pt_t)' & labels.PtStatus;
-        pt_test = Pts2(~idx);
+        idx2 = ismember(Pts2, pt_t)';
         pt_train= Pts2(idx);
-        reg_labels = scrs(pt_train);
-        reg_labels_test = scrs(pt_test);
+        reg_labels = scrs(idx);
+        pt_test = Pts2(idx2);
+        reg_labels_test = scrs(idx2);
 
         trn_mn= mean(features_all(pt_train,:)); trn_std=std(features_all(pt_train,:));
         features= normalize(features_all(pt_train,:));                % all training set features
@@ -259,6 +259,7 @@ for i_scr = (1:length(subscores))
 
 % Compile results
 cv_mat= cell2mat(cv_model_performance);
+scrs=ol.(type);
 error= cv_mat(:,3:3:end)-scrs';  
 reg_results_table= table(error,'RowNames', modelList);
 reg_results_table.pcnt_error=reg_results_table.error/rng(2)*100;
