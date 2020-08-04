@@ -240,12 +240,12 @@ i_binmod= 1; % index of binary classifier model to use
 i_regmod= 7; % index of regression model to use
 
 missed= cellfun(@str2num, strsplit(bin_results_table.missed{i_binmod},' '));
-FN= missed(ismember(HDPts, missed));        % index of false negatives
+FN= missed(ismember(missed, HDPts));        % index of false negatives
 FP= missed(~ismember(missed, HDPts));       % index of false positives
 
 totalScores=zeros(28,1);
 totalScores([HDPts, FP])= reg_results_table.error(i_regmod,unique([HDPts, FP]));
-totalScores(FN)=0; 
+totalScores(FN)= cellfun(@(x) x(i_regmod, 3), cv_model_performance(FN));  % Add total score to 
 
 final_error= mean(abs(totalScores));
 final_error_pcnt= final_error/rng(2)*100;
