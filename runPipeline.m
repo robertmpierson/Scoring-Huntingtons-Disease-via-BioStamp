@@ -285,7 +285,7 @@ end
 %% Calculate Overall Model Score:
 
 type= 'combined_subscores'; % type of UHDRS subscore to predict
-dataDir = 'DATA2';
+dataDir = 'DATA1';
 load('data/Results/Binary_Classification.mat')
 load([dataDir,'/Results/' type, '.mat']) 
 
