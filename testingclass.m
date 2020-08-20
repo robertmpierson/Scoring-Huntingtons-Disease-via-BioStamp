@@ -1,3 +1,4 @@
+%compare actual labels vs predictions
 clear rng;
 load('/Users/inbartivon/Downloads/HD Litt Lab/Data/labels.mat');
 %labels = repelem(labels, n_sit,1);
@@ -25,7 +26,7 @@ testG2 = [features_all(idx,:),...
 testG = [features_all(idx,:),...
 labels{idx,24}];
 
-yfit2 = trainedModel7.predictFcn(features_all);
+yfit2 = trainedModel7.predictFcn(features_all); %can replace model with anything from regression learner app
 predt2 = arrayfun(@(x)mean(yfit2(ptL==x)), 1:28);
 predt2 = predt2(nl.PtStatus == 1)
 

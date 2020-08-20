@@ -1,4 +1,10 @@
 function [ptList, ftIntv, n] = ptIDList(patientIDMap, ftG)
+%patientidmap maps each patient in ftG to one of the 28 patients
+%ftG = cell(1,numIntervals);
+
+%output: n 1x28 with how many versions of each patient there are
+% ptList is 1xnumber of expanded patients
+% ftIntv is a Mx1 cell where M is the number of expanded patients
 n = zeros(1,max(patientIDMap{1}));
 
 for i = 1: length(patientIDMap)

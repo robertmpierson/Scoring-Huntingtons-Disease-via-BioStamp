@@ -31,3 +31,6 @@ time_removed_postureANDsitting = round(5*fs); % 5 seconds
 %for segmenting data
 wind = 2.86*fs; %window size
 overlap = wind/2;
+
+% decide which expanded features to use
+ef  =[0 0 1]; %[0 0 1] means use only expanded gait features

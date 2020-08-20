@@ -139,7 +139,10 @@ ftNames = [];
 FF = cell(3,1);
 cnt = 1;
 for tname = taskList %check if there is an expanded version
-    if isfield(featureTables,([tname{1},'_2']))
+    isT = cellfun(@(x)isequal(x,tname{1}),taskList);
+    i = find(isT); disp(i); %get index of task in tasklist
+    %check that there are expanded features and that you want to use those expanded features
+    if isfield(featureTables,([tname{1},'_2'])) && ef(i) 
         fts = featureTables.([tname{1},'_2']);    
     else
         fts = featureTables.(tname{1});

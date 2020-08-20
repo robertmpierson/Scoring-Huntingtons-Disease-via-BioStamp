@@ -1,3 +1,4 @@
+%%use this to plot Full Model composite subscore prediction
 figure(1); clf; hold all
 load('rawData/labels.mat');
 labels.combined_subscores=sum(labels{:,[11,12,15,20,21,22,23]},2); 
