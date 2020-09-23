@@ -7,7 +7,7 @@ function [selected_fts, selected_test_fts, fLabels] = selectFeats(allTrainFeats,
         [B_gait, fitInfo] = lassoglm(allTrainFeats,train_labels,'binomial','CV',length(train_labels)-1);          
     else  % Regression
         disp('normal LASSO')
-        [B_gait, fitInfo] = lassoglm(allTrainFeats,train_labels,'normal','CV',length(train_labels)-1);
+        [B_gait, fitInfo] = lassoglm(allTrainFeats,train_labels,'normal','CV',5);
     end
 
     % Find coeffs for best CV fit
