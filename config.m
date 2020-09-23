@@ -1,7 +1,7 @@
 % HD Pipeline Settings
 
 % Data Loading
-dataDir = 'Data';
+dataDir = 'DATA5';
 taskList= {'Posture', 'Sitting', 'Gait'};
 numIntervals = 5;  % Number of Gait intervals
 
@@ -28,3 +28,6 @@ remove_time = 1;
 time_removed_walking = round(0*fs); % 2 seconds % time already removed while removing turns
 time_removed_postureANDsitting = round(5*fs); % 5 seconds
 
+%for segmenting data
+wind = round(2.86*fs);        % window size in samples
+overlap = floor(wind/2);      % overlap in samples
