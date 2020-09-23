@@ -21,10 +21,26 @@ function [ampFeats] = getAmplitudeFeats(data, minpkdist)
     ampFeats=zeros(num_amplitude_feats, num_sensors);
     
     for col= 1:num_sensors
-        x= data(:,col); 
+        x= data(:,col);
+        prom = mean(abs(x));
         [~,locs] = findpeaks(x,'MinPeakDistance',minpkdist,'MinPeakProminence',mean(abs(x))); 
-        TF = find(islocalmin(x,'MinSeparation',minpkdist,'MinProminence',mean(abs(x)))); 
+        TF = find(islocalmin(x,'MinSeparation',minpkdist,'MinProminence',mean(abs(x))));
         
+        prom_init = prom;
+        
+        while isempty(locs) || isempty(TF)
+            prom = prom * 0.1;
+            [~,locs] = findpeaks(x,'MinPeakProminence', prom); 
+            TF = find(islocalmin(x,'MinProminence', prom));
+            
+            if prom < .001*prom_init
+                [~,locs] = findpeaks(x,'MinPeakDistance',minpkdist); 
+                TF = find(islocalmin(x,'MinSeparation',minpkdist));
+                break
+            end
+                
+        end
+            
         % Get consecutive local min-to-max (amp1) and max-to-min (amp2) pairs
         [s1,inds1]=sort([locs;TF]);  i_p1=s1(diff(inds1)<0); i_v1=s1(find(diff(inds1)<0)+1);
         [s2,inds2]=sort([TF; locs]);  i_p2=s2(diff(inds2)<0); i_v2=s2(find(diff(inds2)<0)+1);
