@@ -34,7 +34,7 @@ nFts = numel(featureTables.labels);
 
 disp('Features aggregated')
 
-save([dataDir, '/feature_matrix.mat'], 'features_all')
+save([dataDir, '/feature_matrix.mat'], 'features_all', 'ftNames')
 
 % Indices of HD patients & controls
 HDPts= Pts(logical(labels.PtStatus));           
@@ -43,6 +43,7 @@ CtrPts =  Pts(~logical(labels.PtStatus));
 %% 2) BINARY CLASSIFICATION CV
 
 type = 'Binary_Classification';
+ftSelMethod = 'sequential';
 Pts= (1:numPatients);
 
 cv_feats= cell(1, numPatients);
@@ -52,7 +53,7 @@ cv_model_performance= cell(1,numPatients);
 tic
 for pt_test=1:numPatients
 
-    fprintf('pt %d', pt_test)
+    fprintf('pt %d ', pt_test)
     
     % Form Training/Test sets
     pt_train= Pts(Pts~=pt_test); 
@@ -65,7 +66,7 @@ for pt_test=1:numPatients
     
     disp('Selecting Features...')
     [selected_fts, selected_test_fts, flabels]= selectFeats(features,features_test, ...
-        labels_PtStatus, featureTables.labels, taskList, type, true);
+        labels_PtStatus, ftNames, ftSelMethod, true);
     
     cv_feats{pt_test}=flabels; 
 
@@ -143,10 +144,10 @@ subscores= {'Gait', 'TandemGait', ...
     'Bradykinesia_body_', ...
     'combined_subscores'};
 
-labels.combined_subscores = sum(labels{:,[11,12,15,20,21,22,23]},2); 
+labels.combined_subscores = sum(labels{:,[11,12,19,20,21,22,23]},2); 
 
 % iterate through all subscores
-for i_scr = (1:length(subscores))
+for i_scr = [3:9] %(1:length(subscores))
     
     type= subscores{i_scr};     % subscore type
     scrs=labels.(type);         % True subscores
@@ -172,13 +173,13 @@ for pt_test=1:numPatients
     reg_labels = scrs(pt_train);
     reg_labels_test = scrs(pt_test);
     
-    trn_mn= mean(features_all(pt_train,:)); trn_std=std(features_all(pt_train,:));
-    features= normalize(features_all(pt_train,:));                % all training set features
+    trn_mn = mean(features_all(pt_train,:)); trn_std=std(features_all(pt_train,:));
+    features = normalize(features_all(pt_train,:));                % all training set features
     features_test = (features_all(pt_test,:)-trn_mn)./trn_std;    % all test set features
 
     disp('Selecting Features...')
-    [selected_fts, selected_test_fts, flabels]= selectFeats(features, features_test, ...
-        reg_labels, featureTables.labels, taskList, type, false);
+    [selected_fts, selected_test_fts, flabels] = selectFeats(features, features_test, ...
+        reg_labels, ftNames, 'sequential', false);
     cv_feats{pt_test}=flabels; 
 
     disp('Training Classifiers ...')
@@ -205,7 +206,6 @@ for pt_test=1:numPatients
     
 end
 
-
 % Compile results
 cv_mat= cell2mat(cv_model_performance);
 error= cv_mat(:,3:3:end)-scrs';  
@@ -231,9 +231,8 @@ end
 
 %% Calculate Overall Model Score:
 
-type= 'combined_subscores'; % type of UHDRS subscore to predict
-
 load(fullfile(dataDir,'/Results/Binary_Classification.mat'))
+type= 'Gait'; % type of UHDRS subscore to predict
 load([dataDir,'/Results/' type, '.mat']) 
 
 i_binmod= 1; % index of binary classifier model to use
