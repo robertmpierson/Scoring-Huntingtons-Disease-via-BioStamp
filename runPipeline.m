@@ -43,14 +43,13 @@ CtrPts =  Pts(~logical(labels.PtStatus));
 %% 2) BINARY CLASSIFICATION CV
 
 type = 'Binary_Classification';
-ftSelMethod = 'sequential';
+ftSelMethod = 'lasso';  % 'sequential' or 'lasso'
 Pts= (1:numPatients);
 
 cv_feats= cell(1, numPatients);
 cv_model_performance= cell(1,numPatients); 
 
 % Perform leave-one-out CV
-tic
 for pt_test=1:numPatients
 
     fprintf('pt %d ', pt_test)
@@ -94,7 +93,7 @@ for pt_test=1:numPatients
     cv_model_performance{pt_test}= model_performance;
 
 end
-toc
+
 
 disp('Classification CV done')
 
@@ -127,7 +126,7 @@ ft_countss_table= table(ufts(b), a, 'VariableNames', {'Feature', 'count'})
 
 
 save([dataDir, '/Results/Binary_Classification.mat'], 'cv_feats',...
-    'cv_model_performance', 'bin_results_table', 'ft_countss_table')
+    'cv_model_performance', 'bin_results_table', 'ft_countss_table', 'ftSelMethod')
 
 
 disp('Binary Classification Done')
@@ -144,10 +143,13 @@ subscores= {'Gait', 'TandemGait', ...
     'Bradykinesia_body_', ...
     'combined_subscores'};
 
-labels.combined_subscores = sum(labels{:,[11,12,19,20,21,22,23]},2); 
+labels.combined_subscores = sum(labels{:,[11,12,19,20,21,22,23]},2);
+combo_lables = labels.Properties.VariableNames([11,12,19,20,21,22,23])';
+
+ftSelMethod = 'lasso'; % 'sequential' or 'lasso'
 
 % iterate through all subscores
-for i_scr = [3:9] %(1:length(subscores))
+for i_scr = (1:length(subscores))
     
     type= subscores{i_scr};     % subscore type
     scrs=labels.(type);         % True subscores
@@ -157,10 +159,11 @@ for i_scr = [3:9] %(1:length(subscores))
     
     % Set score range (range is the total possible score a patient could
     % get in the categories counted). 
-    if strcmp(type, 'MaximalChorea_face_Mouth_Trunk_And4Extremities_'), rng = [0,28];
-    elseif strcmp(type, 'MaximalDystonia_trunkAnd4Extremities_'), rng = [0,20];
-    elseif strcmp(type, 'combined_subscores'), rng = [0,80];
-    else, rng = [0,4];
+    if strcmp(type, 'MaximalChorea_face_Mouth_Trunk_And4Extremities_'), s_rng = [0,28];
+    elseif strcmp(type, 'MaximalDystonia_trunkAnd4Extremities_'), s_rng = [0,20];
+    elseif strcmp(type, 'combined_subscores'); s_rng = [0,80];
+        save(fullfile(dataDir,'Results', 'combined_subscore_labels.mat', 'combo_labels'));
+    else, s_rng = [0,4];
     end
 
 % Perform leave one out CV to predict subscore
@@ -179,7 +182,7 @@ for pt_test=1:numPatients
 
     disp('Selecting Features...')
     [selected_fts, selected_test_fts, flabels] = selectFeats(features, features_test, ...
-        reg_labels, ftNames, 'sequential', false);
+        reg_labels, ftNames, ftSelMethod, false);
     cv_feats{pt_test}=flabels; 
 
     disp('Training Classifiers ...')
@@ -197,7 +200,7 @@ for pt_test=1:numPatients
         % excel file in dataDir
         [trn_ME, tst_ME, trntst_corrs, y_tst] = getModelResults(chosenModel, ...
             model_name, selected_fts, selected_test_fts, reg_labels,...
-            reg_labels_test, flabels, rng, false);
+            reg_labels_test, flabels, s_rng, false);
 
         model_performance(model_num,:)=[trn_ME, tst_ME, y_tst];
     end
@@ -210,11 +213,11 @@ end
 cv_mat= cell2mat(cv_model_performance);
 error= cv_mat(:,3:3:end)-scrs';  
 reg_results_table= table(error,'RowNames', modelList);
-reg_results_table.pcnt_error=reg_results_table.error/rng(2)*100;
+reg_results_table.pcnt_error=reg_results_table.error/s_rng(2)*100;
 reg_results_table.abs_mn_error_HD =  mean(abs(reg_results_table.error(:,HDPts)),2);
-reg_results_table.abs_mn_error_HD_pcnt =  reg_results_table.abs_mn_error_HD/rng(2)*100;
+reg_results_table.abs_mn_error_HD_pcnt =  reg_results_table.abs_mn_error_HD/s_rng(2)*100;
 reg_results_table.abs_mn_error_all= mean(abs(reg_results_table.error),2);
-reg_results_table.abs_mn_error_all_pcnt= reg_results_table.abs_mn_error_all/rng(2)*100
+reg_results_table.abs_mn_error_all_pcnt= reg_results_table.abs_mn_error_all/s_rng(2)*100;
 
 % Tabulate how often each feature was selected throughout cross validation
 allfts= vertcat(cv_feats{:}); ufts= unique(allfts);
@@ -223,7 +226,7 @@ feat_freqs= cellfun(@(x) sum(ismember(allfts,x)), ufts);
 ft_counts_table= table(ufts(b), a, 'VariableNames', {'Feature', 'count'});
 
 save([dataDir,'/Results/' type, '.mat'],'cv_feats', 'cv_model_performance', 'type', ...
-    'reg_results_table', 'ft_counts_table', 'rng')
+    'reg_results_table', 'ft_counts_table', 's_rng', 'ftSelMethod')
 
 fprintf('%s CV done\n', type)
 
@@ -232,7 +235,7 @@ end
 %% Calculate Overall Model Score:
 
 load(fullfile(dataDir,'/Results/Binary_Classification.mat'))
-type= 'Gait'; % type of UHDRS subscore to predict
+type= 'combined_subscores'; % type of UHDRS subscore to predict
 load([dataDir,'/Results/' type, '.mat']) 
 
 i_binmod= 1; % index of binary classifier model to use
@@ -247,15 +250,14 @@ totalScores([HDPts, FP])= reg_results_table.error(i_regmod,unique([HDPts, FP]));
 totalScores(FN)= cellfun(@(x) x(i_regmod, 3), cv_model_performance(FN));  % Add total score to 
 
 final_error= mean(abs(totalScores));
-final_error_pcnt= final_error/rng(2)*100;
-percentile= [prctile(abs(totalScores),0), prctile(abs(totalScores),50), prctile(abs(totalScores),90)]/rng(2)*100
+final_error_pcnt= final_error/s_rng(2)*100;
+percentile= [prctile(abs(totalScores),0), prctile(abs(totalScores),50), prctile(abs(totalScores),90)]/s_rng(2)*100
 
 
 fprintf(['Using the %s classifier and %s regression model to predict %s.\n',...
-    'Mean error magnitude: %0.2f, normalized mean error: %0.2f%%\n'],...
+    'Mean error magnitude: %0.2f, total abs error: %0.2f, normalized mean error: %0.2f%%\n'],...
 bin_results_table.Properties.RowNames{i_binmod}, ...
 reg_results_table.Properties.RowNames{i_regmod}, type, ...
-final_error, final_error_pcnt)
-
+final_error, sum(abs(totalScores)), final_error_pcnt)
 
 
