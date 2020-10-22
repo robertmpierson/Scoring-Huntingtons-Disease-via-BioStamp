@@ -20,8 +20,8 @@ f_low = 16;    % lowpass cutoff
 featFilename= 'fullFeatures.mat';   % feature filename to create/load from 'dataDir'
 minpkdist= 25;                      % min distance b/w signal peaks for amp feature set
 
-% Include LASSO
-include_lasso = 1;
+% Feature Selection Options
+ftSelMethod= 'lasso';                % choose lasso or sequential feature selection method
 
 % Remove Data from Beginning/End
 remove_time = 1;

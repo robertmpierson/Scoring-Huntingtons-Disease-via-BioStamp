@@ -1,6 +1,6 @@
 % Get Features
 
-run('settings.m')
+run('config.m')
 addpath('helperFcns')
 
 % Load feature data if it already exists
@@ -77,7 +77,7 @@ for task= taskList
         featureTables.Gait= arrayfun(@(pt)mean(cat(3,gi{pt,:}),3), ...
             (1:numPts)', 'UniformOutput', false); 
     else
-        [featureTables.(task{1}), fl, d_combo]= getFullFeatureSet(clean_data, fs, [f_high, f_low], minpkdist);
+        [featureTables.(task{1}), fl]= getFullFeatureSet(clean_data, fs, [f_high, f_low], minpkdist);
     end  
     toc
 end

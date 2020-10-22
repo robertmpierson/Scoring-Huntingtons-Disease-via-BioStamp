@@ -30,6 +30,7 @@ ftNames= ftNames(:); % enforce as column vector
         keepout = false(1,312);        
         
         if isbinary % Binary
+            disp('binomial sequential feature selection')
             fun = @(XT,yT,Xt,yt)mean((predict(...
                     fitcsvm(...
                         XT,yT,'KernelFunction', 'linear', 'PolynomialOrder', [], ...
@@ -38,6 +39,7 @@ ftNames= ftNames(:); % enforce as column vector
                     Xt)-yt).^2);
             
         else % Regression
+            disp('regression sequential feature selection')
             fun = @(XT,yT,Xt,yt)loss(fitrgp(XT,yT, 'BasisFunction', 'constant',...
                     'KernelFunction', 'exponential','Standardize', true),Xt,yt);
         end

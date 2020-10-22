@@ -1,7 +1,7 @@
 % runPipeline
 clear all
 
-run('settings.m')
+run('config.m')
 addpath('helperFcns')
  
 Pts= (1:numPatients);
@@ -261,3 +261,25 @@ reg_results_table.Properties.RowNames{i_regmod}, type, ...
 final_error, sum(abs(totalScores)), final_error_pcnt)
 
 
+% Visualize Full Model Results
+
+% assemble predictions for patients and false positive controls
+ts = zeros(1,28);
+ts([HDPts, FP]) = arrayfun(@(x)cv_model_performance{x}(i_regmod,3), [HDPts, FP]);
+
+[srtscr, srtind]= sort(labels.(type)');
+
+figure(i_regmod); clf; hold on; grid on;
+plot((1:length(labels.(type))), srtscr, '.', 'markersize', 20 )
+plot((1:length(labels.(type))), ts(srtind), '.', 'markersize', 20 )
+
+t = ts(srtind);
+for j = 1:length(labels.(type))
+    plot([j,j],[srtscr(j),t(j)] ,'k')
+end
+
+legend('True score', 'Predicted Score', 'location', 'best');
+xlabel('Patients'); xticklabels(''); ylabel('Composite Score')
+title(sprintf('%s prediction', type))
+set(gca, 'XTick', [])
+ylim(s_rng)
